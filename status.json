@@ -1,0 +1,323 @@
+{
+  "updated_at": "2026-10-29T09:43:28Z",
+  "bots": [
+    {
+      "id": "stews-pa",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "eden",
+      "state": "collaborating",
+      "task": "Morning standup",
+      "with": [
+        "grace"
+      ],
+      "updated_at": "2026-10-29T09:40:28Z"
+    },
+    {
+      "id": "grace",
+      "state": "collaborating",
+      "task": "Morning standup",
+      "with": [
+        "eden"
+      ],
+      "updated_at": "2026-10-29T09:39:28Z"
+    },
+    {
+      "id": "kelvin",
+      "state": "working",
+      "task": "Weekly SEO check",
+      "with": [],
+      "updated_at": "2026-10-29T09:42:28Z"
+    },
+    {
+      "id": "sre",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "srs",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "src",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "reload",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "website-seo",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "seo-aeo",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "merlin",
+      "state": "working",
+      "task": "Market open scan",
+      "with": [],
+      "updated_at": "2026-10-29T09:37:28Z"
+    },
+    {
+      "id": "cash-desk",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "ledger",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "cipher",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "atlas",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "scout",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "tide",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "grok-bot-choices",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "challenge",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "pulse",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "chief",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "vat-desk",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "forge",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "cfo",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "18th-edition",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "disk-saver-1",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "disk-saver-2",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "phoenix",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "amber",
+      "state": "working",
+      "task": "Inbox sweep",
+      "with": [],
+      "updated_at": "2026-10-29T09:35:28Z"
+    },
+    {
+      "id": "vera",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "sr-job-agent",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "sr-notes-agent",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "sr-eicr-agent",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "sr-invoice-agent",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "sr-billing-checker",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "sr-planner-agent",
+      "state": "offline",
+      "task": "Parked",
+      "with": [],
+      "updated_at": "2026-10-29T09:33:28Z"
+    },
+    {
+      "id": "sr-oracle-agent",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "sr-tech-support-agent",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    },
+    {
+      "id": "seren",
+      "state": "idle",
+      "task": "",
+      "with": [],
+      "updated_at": "2026-10-29T09:31:28Z"
+    }
+  ],
+  "history": [
+    {
+      "id": "amber",
+      "state": "working",
+      "task": "Inbox sweep",
+      "with": [],
+      "at": "2026-10-29T09:35:28Z"
+    },
+    {
+      "id": "merlin",
+      "state": "working",
+      "task": "Market open scan",
+      "with": [],
+      "at": "2026-10-29T09:37:28Z"
+    },
+    {
+      "id": "grace",
+      "state": "collaborating",
+      "task": "Morning standup",
+      "with": [
+        "eden"
+      ],
+      "at": "2026-10-29T09:39:28Z"
+    },
+    {
+      "id": "eden",
+      "state": "collaborating",
+      "task": "Morning standup",
+      "with": [
+        "grace"
+      ],
+      "at": "2026-10-29T09:40:28Z"
+    },
+    {
+      "id": "kelvin",
+      "state": "working",
+      "task": "Weekly SEO check",
+      "with": [],
+      "at": "2026-10-29T09:42:28Z"
+    }
+  ]
+}

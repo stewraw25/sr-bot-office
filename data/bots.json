@@ -1,0 +1,275 @@
+[
+  {
+    "id": "stews-pa",
+    "name": "Stew's PA",
+    "emoji": "📬",
+    "team": "grok",
+    "role": "Personal email"
+  },
+  {
+    "id": "eden",
+    "name": "Eden",
+    "emoji": "🪴",
+    "team": "grok",
+    "role": "Main coordinator"
+  },
+  {
+    "id": "grace",
+    "name": "Grace",
+    "emoji": "🌼",
+    "team": "grok",
+    "role": "Phone/SMS"
+  },
+  {
+    "id": "kelvin",
+    "name": "Kelvin",
+    "emoji": "🔥",
+    "team": "grok",
+    "role": "Websites, SEO & social lead"
+  },
+  {
+    "id": "sre",
+    "name": "SRE",
+    "emoji": "📰",
+    "team": "grok",
+    "role": "Electrical website"
+  },
+  {
+    "id": "srs",
+    "name": "SRS",
+    "emoji": "📰",
+    "team": "grok",
+    "role": "Security website"
+  },
+  {
+    "id": "src",
+    "name": "SRC",
+    "emoji": "📰",
+    "team": "grok",
+    "role": "Charge Points website"
+  },
+  {
+    "id": "reload",
+    "name": "RELOAD",
+    "emoji": "📰",
+    "team": "grok",
+    "role": "Reload Renewables website"
+  },
+  {
+    "id": "website-seo",
+    "name": "Website SEO",
+    "emoji": "🔎",
+    "team": "grok",
+    "role": "Website SEO"
+  },
+  {
+    "id": "seo-aeo",
+    "name": "SEO & AEO Desk",
+    "emoji": "✨",
+    "team": "grok",
+    "role": "SEO & AEO"
+  },
+  {
+    "id": "merlin",
+    "name": "Merlin",
+    "emoji": "🧙",
+    "team": "grok",
+    "role": "Trading front door"
+  },
+  {
+    "id": "cash-desk",
+    "name": "Cash Desk",
+    "emoji": "💵",
+    "team": "grok",
+    "role": "Trading"
+  },
+  {
+    "id": "ledger",
+    "name": "Ledger",
+    "emoji": "📊",
+    "team": "grok",
+    "role": "Backtests"
+  },
+  {
+    "id": "cipher",
+    "name": "Cipher",
+    "emoji": "🪙",
+    "team": "grok",
+    "role": "Crypto research"
+  },
+  {
+    "id": "atlas",
+    "name": "Atlas",
+    "emoji": "🌐",
+    "team": "grok",
+    "role": "Macro/Fed"
+  },
+  {
+    "id": "scout",
+    "name": "Scout",
+    "emoji": "🔭",
+    "team": "grok",
+    "role": "Overnight research"
+  },
+  {
+    "id": "tide",
+    "name": "Tide",
+    "emoji": "🐋",
+    "team": "grok",
+    "role": "Institutional flow"
+  },
+  {
+    "id": "grok-bot-choices",
+    "name": "Grok Bot Choices",
+    "emoji": "🎯",
+    "team": "grok",
+    "role": "Bot choices"
+  },
+  {
+    "id": "challenge",
+    "name": "Challenge",
+    "emoji": "🗡️",
+    "team": "grok",
+    "role": "Reviewer"
+  },
+  {
+    "id": "pulse",
+    "name": "Pulse",
+    "emoji": "💓",
+    "team": "grok",
+    "role": "Readiness"
+  },
+  {
+    "id": "chief",
+    "name": "Chief",
+    "emoji": "💼",
+    "team": "grok",
+    "role": "Risk"
+  },
+  {
+    "id": "vat-desk",
+    "name": "VAT Desk",
+    "emoji": "🧾",
+    "team": "grok",
+    "role": "VAT"
+  },
+  {
+    "id": "forge",
+    "name": "Forge",
+    "emoji": "⚒️",
+    "team": "grok",
+    "role": "Cash/overdue"
+  },
+  {
+    "id": "cfo",
+    "name": "CFO",
+    "emoji": "💷",
+    "team": "grok",
+    "role": "Finance"
+  },
+  {
+    "id": "18th-edition",
+    "name": "18th Edition",
+    "emoji": "📘",
+    "team": "grok",
+    "role": "Study"
+  },
+  {
+    "id": "disk-saver-1",
+    "name": "Disk Saver 1",
+    "emoji": "💾",
+    "team": "grok",
+    "role": "Disk saver"
+  },
+  {
+    "id": "disk-saver-2",
+    "name": "Disk Saver 2",
+    "emoji": "💿",
+    "team": "grok",
+    "role": "Disk saver"
+  },
+  {
+    "id": "phoenix",
+    "name": "Phoenix",
+    "emoji": "🐦",
+    "team": "buzz",
+    "role": "Front desk & coordinator"
+  },
+  {
+    "id": "amber",
+    "name": "Amber",
+    "emoji": "💌",
+    "team": "buzz",
+    "role": "Customer & client emails"
+  },
+  {
+    "id": "vera",
+    "name": "Vera",
+    "emoji": "💳",
+    "team": "buzz",
+    "role": "Payment chasing & statements"
+  },
+  {
+    "id": "sr-job-agent",
+    "name": "SR-Job-Agent",
+    "emoji": "📋",
+    "team": "buzz",
+    "role": "New Jobber jobs & visits"
+  },
+  {
+    "id": "sr-notes-agent",
+    "name": "SR-Notes-Agent",
+    "emoji": "📝",
+    "team": "buzz",
+    "role": "Job notes into Jobber"
+  },
+  {
+    "id": "sr-eicr-agent",
+    "name": "SR-EICR-Agent",
+    "emoji": "⚡",
+    "team": "buzz",
+    "role": "EICR bookings & certs"
+  },
+  {
+    "id": "sr-invoice-agent",
+    "name": "SR-Invoice-Agent",
+    "emoji": "🧾",
+    "team": "buzz",
+    "role": "Supplier invoices onto jobs"
+  },
+  {
+    "id": "sr-billing-checker",
+    "name": "SR-Billing-Checker",
+    "emoji": "✅",
+    "team": "buzz",
+    "role": "Billing checks before invoicing"
+  },
+  {
+    "id": "sr-planner-agent",
+    "name": "SR-Planner-Agent",
+    "emoji": "📅",
+    "team": "buzz",
+    "role": "Diary planning"
+  },
+  {
+    "id": "sr-oracle-agent",
+    "name": "SR-Oracle-Agent",
+    "emoji": "🔮",
+    "team": "buzz",
+    "role": "Role TBC"
+  },
+  {
+    "id": "sr-tech-support-agent",
+    "name": "SR-Tech-Support-Agent",
+    "emoji": "🛠️",
+    "team": "buzz",
+    "role": "Role TBC"
+  },
+  {
+    "id": "seren",
+    "name": "Seren",
+    "emoji": "⭐",
+    "team": "buzz",
+    "role": "Role TBC"
+  }
+]

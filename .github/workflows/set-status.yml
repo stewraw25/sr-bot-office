@@ -1,0 +1,57 @@
+name: set-status
+
+on:
+  workflow_dispatch:
+    inputs:
+      bot_id:
+        description: Bot id from data/bots.json
+        required: true
+        type: string
+      state:
+        description: working, idle, collaborating, or offline
+        required: true
+        type: choice
+        options:
+          - working
+          - idle
+          - collaborating
+          - offline
+      task:
+        description: Short label, 40 characters max, no personal data
+        required: false
+        type: string
+      with:
+        description: Comma-separated bot ids when collaborating
+        required: false
+        type: string
+  repository_dispatch:
+    types: [set-status]
+
+concurrency:
+  group: status-json
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update status.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BOT_ID: ${{ github.event.inputs.bot_id || github.event.client_payload.id || github.event.client_payload.bot_id }}
+          BOT_STATE: ${{ github.event.inputs.state || github.event.client_payload.state }}
+          BOT_TASK: ${{ github.event.inputs.task || github.event.client_payload.task }}
+          BOT_WITH: ${{ github.event.inputs.with || github.event.client_payload.with }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BOT_ID}" ] || [ -z "${BOT_STATE}" ]; then
+            echo "bot id and state are required" >&2
+            exit 1
+          fi
+          bash scripts/set-status.sh "$BOT_ID" "$BOT_STATE" "$BOT_TASK" "$BOT_WITH"
