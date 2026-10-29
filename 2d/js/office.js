@@ -1486,7 +1486,7 @@
   async function load() {
     var bots;
     try {
-      bots = normalizeBots(await fetchJson('data/bots.json?ts=' + Date.now()));
+      bots = normalizeBots(await fetchJson('../data/bots.json?ts=' + Date.now()));
     } catch (err) {
       showFatal('Could not load the bot list.');
       return;
@@ -1498,7 +1498,7 @@
     botSig = JSON.stringify(bots);
     if (!DEMO) {
       try {
-        lastStatus = await fetchJson('status.json?ts=' + Date.now());
+        lastStatus = await fetchJson('../status.json?ts=' + Date.now());
         setFeed('live');
       } catch (err) {
         lastStatus = null;
@@ -1522,7 +1522,7 @@
 
   async function refresh() {
     try {
-      var bots = normalizeBots(await fetchJson('data/bots.json?ts=' + Date.now()));
+      var bots = normalizeBots(await fetchJson('../data/bots.json?ts=' + Date.now()));
       var sig = JSON.stringify(bots);
       if (sig !== botSig && bots.length) {
         botSig = sig;
@@ -1533,7 +1533,7 @@
     } catch (err) { /* keep the roster on screen */ }
     if (DEMO) return;
     try {
-      lastStatus = await fetchJson('status.json?ts=' + Date.now());
+      lastStatus = await fetchJson('../status.json?ts=' + Date.now());
       applyStatus(lastStatus, { flash: true });
       setFeed('live');
     } catch (err) {

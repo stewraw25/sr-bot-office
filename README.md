@@ -1,23 +1,25 @@
 # SR Bot Office
 
-Live full-screen view of Stewart Rawson's AI bots, drawn as a shepherd's hut on a smallholding. Built for an office TV: the page is a fixed 1920×1080 stage that scales to 4K and 1366×768. Plain HTML, CSS, and JavaScript. No build step, no external images, no paid services.
+Live full-screen view of Stewart Rawson's AI bots, drawn as a shepherd's hut on a smallholding. Built for an office TV. The main page is a static Three.js scene (procedural primitives, no build step). A flat fallback of the same office is at `/2d/`. No paid services and no downloaded models.
 
 **Live:** https://stewraw25.github.io/sr-bot-office/
 
+Three.js is MIT licensed and loaded from jsDelivr (`three@0.170.0`). Pixel ratio is capped so a 4K TV does not render a full 4K framebuffer, and shadows use one 1024 map.
+
 ## What you see
 
-The hut is the office. Grok Bots sit in the upper room, Buzz in the lower room. Desks are laid out from `data/bots.json`, so adding a bot just adds a desk.
+The hut is the office, with the barrel roof cut away so the room stays visible. Grok Bots sit toward the back, Buzz toward the front. Desks are laid out from `data/bots.json`, so adding a bot just adds a desk. Name and status labels sit above each bot and move aside when they would overlap.
 
 - **Working** bots walk to their desk, sit, and type. A bubble shows a short task label.
 - **Idle** bots wander between desks, the sofa, and the kettle.
 - **Collaborating** bots walk to a shared table. A line joins them and both bubbles show the task.
-- **Offline** bots stay at their desk (greyed, with a z). This does not expire.
+- **Offline** bots stay at their desk, greyed out. This does not expire.
 
 Outside the hut: a barn conversion, stables, two black horses, two red miniature poodles, six ducks, a dozen chickens, nearby and distant caravans, and a wizard doing groundworks. Parked by the hut are a white Stewart Rawson Electrical van, a smaller SR Security van, and a black Tesla Model Y. The sky tint follows UK time (night, dawn, day, dusk). Add `?sky=night` (or `dawn`, `day`, `dusk`) to lock it.
 
 `?demo=1` ignores `status.json` and animates example tasks in the browser only. Nothing is written.
 
-The mouse cursor hides after a few seconds. Fullscreen is the button, a double-click, or the `f` key.
+The mouse cursor hides after a few seconds. Fullscreen is the button, a double-click, or the `f` key. The header link **2D** opens the flat version.
 
 ## Bots
 
