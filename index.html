@@ -4,28 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="SR Bot Office — live full-screen view of Stewart Rawson's AI bots for the office TV.">
+<meta name="description" content="SR Bot Office — live 3D view of Stewart Rawson's AI bots for the office TV.">
 <title>SR Bot Office</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/office.css">
+<link rel="stylesheet" href="css/hud.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
 </head>
 <body>
-<div id="stage">
-  <header id="topbar">
-    <h1>SR Bot Office</h1>
-    <div id="clock"></div>
-    <div id="counts"></div>
-    <div id="feed" class="feed">Live</div>
-    <button id="fullbtn" type="button">Fullscreen</button>
-  </header>
-  <div id="scene"></div>
-  <footer id="ticker" aria-live="polite">
-    <div id="ticker-track" class="ticker-track"></div>
-  </footer>
-  <div id="demo-flag" hidden>DEMO</div>
-  <div id="fps" hidden></div>
-</div>
-<noscript><p class="noscript">SR Bot Office needs JavaScript enabled.</p></noscript>
-<script src="js/office.js"></script>
+<header id="topbar">
+  <h1>SR Bot Office</h1>
+  <div id="clock"></div>
+  <div id="counts"></div>
+  <div id="feed" class="feed">Live</div>
+  <a id="flat" href="2d/">2D</a>
+  <button id="fullbtn" type="button">Fullscreen</button>
+</header>
+<footer id="ticker" aria-live="polite">
+  <div id="ticker-track" class="ticker-track"></div>
+</footer>
+<div id="demo-flag" hidden>DEMO</div>
+<div id="fps" hidden></div>
+<noscript><p class="noscript">SR Bot Office needs JavaScript enabled. The flat view is at <a href="2d/">2d/</a>.</p></noscript>
+<script type="module" src="js/office3d.js"></script>
+<script>
+  setTimeout(function () {
+    if (!window.__office || !window.__office.booted) {
+      var d = document.createElement('div');
+      d.className = 'fatal';
+      d.innerHTML = 'The 3D office did not start. <a href="2d/">Open the 2D view</a>.';
+      document.body.appendChild(d);
+    }
+  }, 12000);
+</script>
 </body>
 </html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="SR Bot Office — live full-screen view of Stewart Rawson's AI bots for the office TV.">
+<title>SR Bot Office</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/office.css">
+</head>
+<body>
+<div id="stage">
+  <header id="topbar">
+    <h1>SR Bot Office</h1>
+    <div id="clock"></div>
+    <div id="counts"></div>
+    <div id="feed" class="feed">Live</div>
+    <a id="flat" href="../">3D</a>
+    <button id="fullbtn" type="button">Fullscreen</button>
+  </header>
+  <div id="scene"></div>
+  <footer id="ticker" aria-live="polite">
+    <div id="ticker-track" class="ticker-track"></div>
+  </footer>
+  <div id="demo-flag" hidden>DEMO</div>
+  <div id="fps" hidden></div>
+</div>
+<noscript><p class="noscript">SR Bot Office needs JavaScript enabled.</p></noscript>
+<script src="js/office.js"></script>
+</body>
+</html>

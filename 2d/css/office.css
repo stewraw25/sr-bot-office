@@ -1132,3 +1132,6 @@ body.hide-cursor * {
   70% { box-shadow: 0 0 0 6px rgba(125, 255, 168, 0); }
   100% { box-shadow: 0 0 0 0 rgba(125, 255, 168, 0); }
 }
+
+#flat{color:#fff6ea;font-weight:800;font-size:16px;text-decoration:none;border:2px solid #f3e2c8;border-radius:999px;padding:6px 12px}
+#flat:hover{background:#f3e2c8;color:#2a1810}
