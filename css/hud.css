@@ -269,6 +269,16 @@ body.hide-cursor, body.hide-cursor * { cursor: none !important; }
   pointer-events: none;
 }
 
+.place-tag {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .tag { display: block; pointer-events: auto; cursor: pointer; opacity: 0; }
 .tag.show { opacity: 1; }
 .tag .short {
