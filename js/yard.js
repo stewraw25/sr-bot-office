@@ -2,9 +2,14 @@
    Blocky vehicles and the wheel helper follow the same primitive style as
    agent-office-3d's props. Movement is gentle and local — nothing here is status. */
 import * as THREE from 'three';
+import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { lambert, basic, grassTexture, brandMaterial } from './kit.js';
 
-const animals = { horses: [], poodles: [], ducks: [], chickens: [], wizard: null, clouds: [], chickenMeshes: null };
+const animals = {
+  horses: [], poodles: [], ducks: [], chickens: [], wizard: null, clouds: [],
+  chickenMeshes: null, people: [], buggy: null, ball: null
+};
 const _m1 = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
@@ -88,6 +93,7 @@ export function buildYard(scene) {
   buildPond(scene);
   buildVehicles(scene);
   buildCritters(scene);
+  buildHousehold(scene);
   buildWizard(scene);
   [[-18.4, -4.2], [-18.6, 8.2], [17.6, -5.4], [17.2, 6.4], [-5.5, -14.2], [9.5, 13.2]].forEach(([x, z], i) => tree(scene, x, z, 0.7 + (i % 3) * 0.2));
 
@@ -308,24 +314,32 @@ function buildCritters(scene) {
   }
 
   const loop = [
-    { x: -17.4, z: 7.4 }, { x: -14.4, z: 7.8 }, { x: -13.6, z: 6.6 },
-    { x: -14.2, z: 6.5 }, { x: -17.6, z: 6.4 }, { x: -17.8, z: 7.0 }
+    { x: -12.5, z: 13.45 }, { x: -11.15, z: 13.7 }, { x: -9.8, z: 13.4 },
+    { x: -10.15, z: 13.05 }, { x: -11.5, z: 12.95 }, { x: -12.7, z: 13.15 }
   ];
+  const coats = [0xe25838, 0xef7a48];
   for (let i = 0; i < 2; i++) {
-    const p = new THREE.Group();
-    const fur = lambert(0xd23b3b);
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), fur);
-    body.position.y = 0.28;
-    body.scale.set(1.25, 0.9, 0.9);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 7), fur);
-    head.position.set(0.22, 0.4, 0);
-    const tail = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 5), fur);
-    tail.position.set(-0.26, 0.32, 0);
-    p.add(body, head, tail);
-    const start = loop[i * 2];
+    const fur = lambert(coats[i]);
+    const part = (geo, x, y, z) => { geo.translate(x, y, z); return geo; };
+    const geos = [
+      part(new THREE.BoxGeometry(0.5, 0.22, 0.22), 0, 0.3, 0),
+      part(new THREE.BoxGeometry(0.08, 0.2, 0.08), -0.16, 0.12, 0.07),
+      part(new THREE.BoxGeometry(0.08, 0.2, 0.08), -0.16, 0.12, -0.07),
+      part(new THREE.BoxGeometry(0.08, 0.2, 0.08), 0.14, 0.12, 0.07),
+      part(new THREE.BoxGeometry(0.08, 0.2, 0.08), 0.14, 0.12, -0.07),
+      part(new THREE.BoxGeometry(0.2, 0.18, 0.18), 0.32, 0.42, 0),
+      part(new THREE.BoxGeometry(0.12, 0.08, 0.1), 0.46, 0.38, 0),
+      part(new THREE.SphereGeometry(0.07, 6, 5), 0.28, 0.54, 0.1),
+      part(new THREE.SphereGeometry(0.07, 6, 5), 0.28, 0.54, -0.1),
+      part(new THREE.SphereGeometry(0.09, 6, 5), -0.3, 0.4, 0)
+    ];
+    const p = new THREE.Mesh(mergeGeometries(geos), fur);
+    geos.forEach((geo) => geo.dispose());
+    p.scale.setScalar(1.35);
+    const start = loop[i * 3];
     p.position.set(start.x, 0, start.z);
     scene.add(p);
-    animals.poodles.push({ mesh: p, points: loop, i: i * 2, speed: 0.55 });
+    animals.poodles.push({ mesh: p, points: loop, i: i * 3, speed: 0.32, bob: i });
   }
 
   for (let i = 0; i < 6; i++) {
@@ -372,6 +386,236 @@ function buildCritters(scene) {
   });
   bodies.instanceColor.needsUpdate = true;
   heads.instanceColor.needsUpdate = true;
+}
+
+const vertexMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+
+function colored(geo, hex, x = 0, y = 0, z = 0, rx = 0) {
+  if (rx) geo.rotateX(rx);
+  geo.translate(x, y, z);
+  const flat = geo.index ? geo.toNonIndexed() : geo;
+  if (flat !== geo) geo.dispose();
+  const c = new THREE.Color(hex);
+  const n = flat.getAttribute('position').count;
+  const arr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    arr[i * 3] = c.r;
+    arr[i * 3 + 1] = c.g;
+    arr[i * 3 + 2] = c.b;
+  }
+  flat.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  return flat;
+}
+
+function oneMesh(geos) {
+  const mesh = new THREE.Mesh(mergeGeometries(geos), vertexMat);
+  geos.forEach((geo) => geo.dispose());
+  return mesh;
+}
+
+function personTag(name) {
+  const div = document.createElement('div');
+  div.className = 'person-tag';
+  div.textContent = name;
+  const label = new CSS2DObject(div);
+  label.center.set(0.5, 1);
+  return label;
+}
+
+function buildPerson(scene, spec) {
+  const s = spec.scale || 1;
+  const legMul = spec.leg || 1;
+  const g = new THREE.Group();
+  const skin = spec.skin || 0xf1c7a4;
+  const top = spec.top;
+  const cloth = spec.legs || 0x2c3344;
+  const hair = spec.hair || 0x3a2a22;
+  const shoe = spec.shoes || 0x241c18;
+  const hip = new THREE.Group();
+  const legH = 0.5 * s * legMul;
+  hip.position.y = legH + 0.05 * s;
+  g.add(hip);
+
+  const body = [];
+  if (spec.dress) {
+    body.push(colored(new THREE.ConeGeometry(0.5 * s, 0.66 * s, 8), top, 0, -0.12 * s, 0));
+  } else {
+    [-1, 1].forEach((side) => {
+      body.push(colored(new THREE.BoxGeometry(0.13 * s, legH * 0.52, 0.14 * s), cloth, side * 0.1 * s, -legH * 0.26, 0));
+      body.push(colored(new THREE.BoxGeometry(0.12 * s, legH * 0.5, 0.13 * s), cloth, side * 0.1 * s, -legH * 0.74, 0));
+      body.push(colored(new THREE.BoxGeometry(0.14 * s, 0.06 * s, 0.22 * s), shoe, side * 0.1 * s, -legH - 0.01 * s, 0.04 * s));
+    });
+  }
+  body.push(colored(new THREE.BoxGeometry((spec.dress ? 0.5 : 0.42) * s, 0.4 * s, 0.24 * s), top, 0, 0.22 * s, 0));
+  if (spec.belt) body.push(colored(new THREE.BoxGeometry(0.44 * s, 0.06 * s, 0.26 * s), 0x161616, 0, 0.02 * s, 0));
+  body.push(colored(new THREE.BoxGeometry(0.28 * s, 0.26 * s, 0.26 * s), skin, 0, 0.58 * s, 0));
+  [-1, 1].forEach((side) => {
+    body.push(colored(new THREE.BoxGeometry(0.045 * s, 0.045 * s, 0.02 * s), 0x1a1a1a, side * 0.07 * s, 0.6 * s, 0.13 * s));
+  });
+  if (spec.hairStyle === 'frizz') {
+    body.push(colored(new THREE.IcosahedronGeometry(0.3 * s, 0), hair, 0, 0.82 * s, 0));
+    body.push(colored(new THREE.IcosahedronGeometry(0.2 * s, 0), hair, 0.18 * s, 0.7 * s, 0.04 * s));
+    body.push(colored(new THREE.IcosahedronGeometry(0.18 * s, 0), hair, -0.18 * s, 0.68 * s, -0.02 * s));
+    body.push(colored(new THREE.IcosahedronGeometry(0.16 * s, 0), hair, 0.02 * s, 0.78 * s, -0.12 * s));
+  } else if (spec.hairStyle === 'beanie') {
+    const hat = spec.hat || 0x1d3f86;
+    body.push(colored(new THREE.CylinderGeometry(0.16 * s, 0.17 * s, 0.16 * s, 8), hat, 0, 0.76 * s, 0));
+    body.push(colored(new THREE.SphereGeometry(0.07 * s, 6, 5), hat, 0, 0.9 * s, 0));
+    body.push(colored(new THREE.BoxGeometry(0.26 * s, 0.05 * s, 0.26 * s), hair, 0, 0.66 * s, 0));
+  } else if (spec.hairStyle === 'long') {
+    body.push(colored(new THREE.BoxGeometry(0.3 * s, 0.1 * s, 0.28 * s), hair, 0, 0.74 * s, 0));
+    body.push(colored(new THREE.BoxGeometry(0.26 * s, 0.32 * s, 0.08 * s), hair, 0, 0.5 * s, -0.14 * s));
+  } else {
+    body.push(colored(new THREE.BoxGeometry(0.3 * s, 0.12 * s, 0.3 * s), hair, 0, 0.74 * s, 0));
+  }
+  hip.add(oneMesh(body));
+
+  const arms = [];
+  const fore = spec.gi ? top : skin;
+  [-1, 1].forEach((side) => {
+    const shoulder = new THREE.Group();
+    shoulder.position.set(side * 0.28 * s, 0.32 * s, 0);
+    shoulder.add(oneMesh([
+      colored(new THREE.BoxGeometry(0.1 * s, 0.24 * s, 0.1 * s), top, 0, -0.14 * s, 0),
+      colored(new THREE.BoxGeometry(0.09 * s, 0.2 * s, 0.09 * s), fore, 0, -0.34 * s, 0),
+      colored(new THREE.BoxGeometry(0.08 * s, 0.07 * s, 0.08 * s), skin, 0, -0.46 * s, 0)
+    ]));
+    hip.add(shoulder);
+    arms.push(shoulder);
+  });
+
+  const label = personTag(spec.name);
+  label.position.set(0, 0.86 * s + (spec.hairStyle === 'frizz' ? 0.28 * s : 0.06 * s), 0);
+  hip.add(label);
+
+  g.position.set(spec.x, 0, spec.z);
+  g.rotation.y = spec.ry || 0;
+  scene.add(g);
+  animals.people.push({
+    hip, arms, root: g, phase: spec.phase || 0, mode: spec.mode || 'sway', hop: !!spec.hop
+  });
+}
+
+function buildKitchen(scene) {
+  const g = new THREE.Group();
+  const parts = [
+    colored(new THREE.BoxGeometry(2.8, 0.06, 1.8), 0xd7c3a4, 0, 0.03, 0),
+    colored(new THREE.BoxGeometry(2.8, 1.7, 0.1), 0xf4f0e6, 0, 0.9, -0.85),
+    colored(new THREE.BoxGeometry(0.1, 1.7, 1.7), 0xf4f0e6, -1.35, 0.9, 0),
+    colored(new THREE.BoxGeometry(0.1, 1.05, 0.85), 0xf4f0e6, 1.35, 0.55, -0.42),
+    colored(new THREE.BoxGeometry(1.55, 0.7, 0.5), 0x8d5a34, -0.45, 0.38, -0.52),
+    colored(new THREE.BoxGeometry(1.7, 0.1, 0.55), 0x8d5a34, -0.4, 0.78, -0.5),
+    colored(new THREE.BoxGeometry(0.55, 1.35, 0.5), 0xf7f7f5, 0.95, 0.7, -0.52),
+    colored(new THREE.BoxGeometry(0.38, 0.05, 0.28), 0xc5ccd1, -0.75, 0.86, -0.5),
+    colored(new THREE.BoxGeometry(0.4, 0.04, 0.34), 0x2a3038, 0.15, 0.86, -0.5),
+    colored(new THREE.TorusGeometry(0.08, 0.016, 6, 10), 0xc43838, 0.15, 0.9, -0.5, -Math.PI / 2),
+    colored(new THREE.PlaneGeometry(0.7, 0.42), 0xc5e6f4, -0.15, 1.35, -0.79)
+  ];
+  g.add(oneMesh(parts));
+  g.position.set(13.35, 0, 4.5);
+  scene.add(g);
+}
+
+function buildBuggy(scene) {
+  const g = new THREE.Group();
+  g.add(oneMesh([
+    colored(new THREE.BoxGeometry(1.45, 0.32, 2.05), 0x2f9a34, 0, 0.55, 0),
+    colored(new THREE.BoxGeometry(1.2, 0.2, 0.4), 0x2f9a34, 0, 0.5, 1.05),
+    colored(new THREE.BoxGeometry(0.06, 0.72, 1.45), 0x1a1a1a, -0.64, 0.98, -0.05),
+    colored(new THREE.BoxGeometry(0.06, 0.72, 1.45), 0x1a1a1a, 0.64, 0.98, -0.05),
+    colored(new THREE.BoxGeometry(1.38, 0.06, 1.45), 0x2f9a34, 0, 1.32, -0.05),
+    colored(new THREE.BoxGeometry(0.7, 0.28, 0.42), 0x243044, 0, 0.8, -0.15)
+  ]));
+  const geo = new THREE.CylinderGeometry(0.36, 0.36, 0.22, 10);
+  geo.rotateZ(Math.PI / 2);
+  const wheels = new THREE.InstancedMesh(geo, lambert(0x1a1a1a), 4);
+  wheels.frustumCulled = false;
+  const spots = [[0.8, 0.72], [-0.8, 0.72], [0.8, -0.72], [-0.8, -0.72]];
+  spots.forEach(([x, z], i) => {
+    _m1.makeTranslation(x, 0.36, z);
+    wheels.setMatrixAt(i, _m1);
+  });
+  g.add(wheels);
+  g.position.set(6.1, 0, 12.55);
+  scene.add(g);
+  animals.buggy = {
+    mesh: g,
+    wheels,
+    spots,
+    spin: 0,
+    points: [
+      { x: 6.1, z: 12.55 },
+      { x: 8.7, z: 12.75 },
+      { x: 8.9, z: 13.4 },
+      { x: 6.2, z: 13.2 }
+    ],
+    i: 0,
+    speed: 0.7
+  };
+}
+
+function buildQuad(scene) {
+  const parts = [
+    colored(new THREE.BoxGeometry(0.72, 0.22, 1.15), 0xc4372a, 0, 0.48, 0),
+    colored(new THREE.BoxGeometry(0.32, 0.12, 0.34), 0x161616, 0, 0.62, -0.08),
+    colored(new THREE.BoxGeometry(0.28, 0.16, 0.32), 0xc4372a, 0, 0.64, 0.32),
+    colored(new THREE.BoxGeometry(0.04, 0.22, 0.04), 0x161616, 0, 0.64, 0.52),
+    colored(new THREE.BoxGeometry(0.5, 0.04, 0.04), 0x161616, 0, 0.74, 0.52)
+  ];
+  [[0.42, 0.42], [-0.42, 0.42], [0.42, -0.42], [-0.42, -0.42]].forEach(([x, z]) => {
+    const tyre = new THREE.CylinderGeometry(0.24, 0.24, 0.16, 8);
+    tyre.rotateZ(Math.PI / 2);
+    parts.push(colored(tyre, 0x161616, x, 0.24, z));
+  });
+  const g = oneMesh(parts);
+  g.position.set(10.1, 0, 10.6);
+  g.rotation.y = 0.65;
+  scene.add(g);
+  animals.quad = g;
+}
+
+function buildHousehold(scene) {
+  buildKitchen(scene);
+  buildBuggy(scene);
+  buildQuad(scene);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), lambert(0xf0c14e));
+  ball.position.set(0.9, 0.16, 12.35);
+  scene.add(ball);
+  animals.ball = ball;
+
+  buildPerson(scene, {
+    name: 'Morgan', x: -12.55, z: 12.35, ry: 0.55, scale: 1.05,
+    top: 0x2f8f4a, legs: 0x2a3144, hair: 0xe07a28, hairStyle: 'short', phase: 0.2
+  });
+  buildPerson(scene, {
+    name: 'Ryan', x: -9.35, z: 12.55, ry: -0.25, scale: 0.82,
+    top: 0x1a6dff, legs: 0x243044, hair: 0x4a3428, hairStyle: 'short', phase: 1.4
+  });
+  buildPerson(scene, {
+    name: 'Stewart', x: -8.15, z: 12.15, ry: 0.7, scale: 1.05,
+    top: 0x2a4fa8, legs: 0x2c3344, hair: 0x3a2a22, hairStyle: 'beanie', hat: 0x1d3f86, phase: 2.1
+  });
+  buildPerson(scene, {
+    name: 'Jen', x: 13.15, z: 5.25, ry: Math.PI, scale: 1.02,
+    top: 0xd23b78, hair: 0x6b3a22, hairStyle: 'frizz', dress: true, mode: 'cook', phase: 0.6
+  });
+  buildPerson(scene, {
+    name: 'Bella', x: 0.15, z: 12.55, ry: 0.4, scale: 0.6,
+    top: 0xf07ab0, legs: 0xf2d36a, hair: 0xc47a3a, hairStyle: 'short', mode: 'play', hop: true, phase: 0.3
+  });
+  buildPerson(scene, {
+    name: 'George', x: 1.55, z: 12.15, ry: 2.4, scale: 0.68,
+    top: 0x3aa0e8, legs: 0x2a3a55, hair: 0x3a2a22, hairStyle: 'short', mode: 'play', hop: true, phase: 1.7
+  });
+  buildPerson(scene, {
+    name: 'Fred', x: 4.55, z: 11.15, ry: 0.35, scale: 1.08, leg: 1.85,
+    top: 0xc43838, legs: 0x2a3a55, hair: 0x2a211c, hairStyle: 'short', phase: 2.6
+  });
+  buildPerson(scene, {
+    name: 'Ju-jitsu', x: 3.15, z: 11.5, ry: -0.4, scale: 1,
+    top: 0xf7f7f5, legs: 0xf4f4f2, hair: 0x1a120e, hairStyle: 'long',
+    gi: true, belt: true, shoes: 0xf7f7f5, mode: 'practice', phase: 0.9
+  });
 }
 
 function buildWizard(scene) {
@@ -454,6 +698,56 @@ export function stepYard(dt, t) {
       p.mesh.position.x += (dx / dist) * p.speed * dt;
       p.mesh.position.z += (dz / dist) * p.speed * dt;
       p.mesh.rotation.y = Math.atan2(dx, dz);
+    }
+    p.mesh.position.y = Math.abs(Math.sin(t * 5 + p.bob)) * 0.03;
+  }
+  for (const p of animals.people) {
+    const sway = Math.sin(t * 0.8 + p.phase);
+    p.hip.rotation.z = sway * 0.025;
+    if (p.mode === 'play') {
+      p.arms[0].rotation.x = Math.sin(t * 3.2 + p.phase) * 0.7;
+      p.arms[1].rotation.x = Math.sin(t * 3.2 + p.phase + 1.2) * 0.55;
+      p.root.position.y = Math.abs(Math.sin(t * 2.4 + p.phase)) * 0.07;
+    } else if (p.mode === 'cook') {
+      p.arms[0].rotation.x = -0.4;
+      p.arms[1].rotation.x = -0.9 + Math.sin(t * 2.2 + p.phase) * 0.35;
+      p.root.position.y = 0;
+    } else if (p.mode === 'practice') {
+      p.arms[0].rotation.x = -0.3 + Math.sin(t * 0.7 + p.phase) * 0.35;
+      p.arms[1].rotation.x = -0.9 + Math.sin(t * 0.7 + p.phase) * 0.15;
+      p.root.position.y = 0;
+    } else {
+      p.arms[0].rotation.x = sway * 0.12;
+      p.arms[1].rotation.x = -sway * 0.1;
+      p.root.position.y = 0;
+    }
+  }
+  if (animals.ball) {
+    animals.ball.position.x = 0.85 + Math.sin(t * 1.25) * 0.5;
+    animals.ball.position.z = 12.32 + Math.cos(t * 1.25) * 0.18;
+    animals.ball.position.y = 0.14 + Math.abs(Math.sin(t * 2.5)) * 0.22;
+  }
+  if (animals.buggy) {
+    const b = animals.buggy;
+    const target = b.points[b.i];
+    const dx = target.x - b.mesh.position.x;
+    const dz = target.z - b.mesh.position.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 0.08) b.i = (b.i + 1) % b.points.length;
+    else {
+      b.mesh.position.x += (dx / dist) * b.speed * dt;
+      b.mesh.position.z += (dz / dist) * b.speed * dt;
+      b.mesh.rotation.y = Math.atan2(dx, dz);
+      b.spin += b.speed * dt / 0.36;
+      b.spots.forEach(([x, z], i) => {
+        _e.set(b.spin, 0, 0);
+        _q.setFromEuler(_e);
+        _p.set(x, 0.36, z);
+        _s.set(1, 1, 1);
+        _m1.compose(_p, _q, _s);
+        b.wheels.setMatrixAt(i, _m1);
+      });
+      b.wheels.instanceMatrix.needsUpdate = true;
     }
   }
   const pond = { x: -15.6, z: 4.0, r: 1.25 };

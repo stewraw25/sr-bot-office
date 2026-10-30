@@ -18,6 +18,8 @@ import {
 import { buildYard, stepYard } from './yard.js';
 
 const STALE_MS = 10 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const VISIT_MS = 4500;
 const POLL_MS = 45000;
 const FY = 0.08;
 
@@ -82,7 +84,7 @@ const ZONE_DEFS = [
   { id: 'house', title: 'HOUSEKEEPING', color: 0x7c8a42, x0: -6.55, x1: -2.35, z0: 2.85, z1: 8.15, lx: -4.45, lz: 6.4, lw: 3.3, ld: 0.72 },
   { id: 'jobs', title: 'JOBS', color: 0xd07a32, x0: -1.75, x1: 11.55, z0: 2.85, z1: 8.15, lx: 4.9, lz: 6.75, lw: 3.4, ld: 0.8 }
 ];
-const LOUNGE = { x: -0.85, z: -0.4, disc: 1.55, r1: 2.35, r2: 2.9 };
+const LOUNGE = { x: -0.85, z: -0.4, disc: 1.55 };
 const HAND_SPOTS = [
   { x: -11.05, z: -3.35 }, { x: -10.25, z: -3.35 }, { x: -9.45, z: -3.35 },
   { x: -8.65, z: -3.35 }, { x: -7.85, z: -3.35 },
@@ -121,12 +123,18 @@ let graph = [];
 let botMeshes = [];
 let screenMesh = null;
 let chairMesh = null;
+let lampShade = null;
+let lampPole = null;
+let lampMat = null;
 let lastStatus = null;
 let feedOk = true;
 let hoverId = null;
 let pinned = null;
 let sig = '';
 let loungeSeats = [];
+const lampColor = new THREE.Color();
+const flickerA = new THREE.Color();
+const flickerB = new THREE.Color(0xf3fff6);
 let serverLamps = [];
 let wallScreens = [];
 let shadowsOn = true;
@@ -139,9 +147,9 @@ let lastMinute = -1;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SKY.day.bg);
 scene.fog = new THREE.Fog(SKY.day.fog, 78, 150);
-const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 260);
-camera.position.set(4, 22, 22);
-camera.lookAt(-0.5, 0.2, 2);
+const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 260);
+camera.position.set(2.2, 24.5, 25.5);
+camera.lookAt(-0.4, 0.15, 1.4);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -464,22 +472,7 @@ function buildProps() {
     put(leaves, i * 2 + 1, x + 0.08 * s, FY + 0.52 * s, z + 0.04, s * 0.7);
   });
 
-  const sofaMat = lambert(0x3aa89a);
-  [[LOUNGE.x - 2.05, LOUNGE.z, Math.PI / 2], [LOUNGE.x + 2.05, LOUNGE.z, -Math.PI / 2]].forEach(([x, z, ry]) => {
-    const g = new THREE.Group();
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.22, 0.48), sofaMat);
-    seat.position.y = 0.24;
-    const back = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.36, 0.1), sofaMat);
-    back.position.set(0, 0.46, -0.2);
-    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.28, 0.48), sofaMat);
-    armL.position.set(-0.64, 0.36, 0);
-    const armR = armL.clone();
-    armR.position.x = 0.64;
-    g.add(seat, back, armL, armR);
-    g.position.set(x, 0, z);
-    g.rotation.y = ry;
-    office.add(g);
-  });
+  buildLoungeSofas();
 
   const lamp = new THREE.Group();
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.15, 6), lambert(0x2a241e));
@@ -555,10 +548,6 @@ function buildGraph() {
   line(-11.2, 3.35, -7.4, 3.35, 1.4);
   line(-6.2, 3.35, -2.6, 3.35, 1.3);
   line(-1.4, 3.35, 11.1, 3.35, 1.55);
-  for (let i = 0; i < 12; i++) {
-    const a = (i / 12) * Math.PI * 2;
-    nodes.push({ x: LOUNGE.x + Math.cos(a) * 3.25, z: LOUNGE.z + Math.sin(a) * 3.25 });
-  }
   graph = nodes;
 }
 
@@ -634,56 +623,45 @@ function route(from, to) {
   return path;
 }
 
-function addLoungeStools() {
-  const n = loungeSeats.length;
-  if (!n) return;
-  const seat = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.08, 0.46), lambert(0x3aa89a), n);
-  const leg = new THREE.InstancedMesh(new THREE.BoxGeometry(0.1, 0.24, 0.1), lambert(0x2a241e), n);
-  const back = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.32, 0.08), lambert(0x2f8f84), n);
-  seat.frustumCulled = false;
-  leg.frustumCulled = false;
-  back.frustumCulled = false;
-  const m = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  loungeSeats.forEach((s, i) => {
-    m.makeTranslation(s.x, 0.3, s.z);
-    seat.setMatrixAt(i, m);
-    m.makeTranslation(s.x, 0.14, s.z);
-    leg.setMatrixAt(i, m);
-    q.setFromEuler(new THREE.Euler(0, s.face || 0, 0));
-    m.compose(
-      new THREE.Vector3(s.x - Math.sin(s.face || 0) * 0.22, 0.46, s.z - Math.cos(s.face || 0) * 0.22),
-      q,
-      new THREE.Vector3(1, 1, 1)
-    );
-    back.setMatrixAt(i, m);
-  });
-  office.add(seat, leg, back);
-}
-
-function makeLoungeSeats(n) {
+function buildLoungeSofas() {
+  const specs = [
+    { x: -3.4, z: -0.4, ry: Math.PI / 2 },
+    { x: 1.7, z: -0.4, ry: -Math.PI / 2 },
+    { x: -0.85, z: -2.9, ry: 0 },
+    { x: -0.85, z: 2.05, ry: Math.PI }
+  ];
+  const n = specs.length;
+  const wide = 2.15;
+  const seatM = new THREE.InstancedMesh(new THREE.BoxGeometry(wide, 0.24, 0.52), lambert(0x1aa890), n);
+  const backM = new THREE.InstancedMesh(new THREE.BoxGeometry(wide, 0.72, 0.12), lambert(0x12786a), n);
+  const armM = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 0.32, 0.52), lambert(0x1aa890), n * 2);
+  [seatM, backM, armM].forEach((mesh) => { mesh.frustumCulled = false; });
   const seats = [];
-  [LOUNGE.r1, LOUNGE.r2].forEach((r, ring) => {
-    const count = Math.round((Math.PI * 2 * r) / 0.78);
-    for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2 + ring * 0.2;
-      const x = LOUNGE.x + Math.cos(a) * r;
-      const z = LOUNGE.z + Math.sin(a) * r;
-      const inside = ZONE_DEFS.some((def) => x > def.x0 + 0.15 && x < def.x1 - 0.15 && z > def.z0 + 0.15 && z < def.z1 - 0.15);
-      if (inside) continue;
-      if (x < -11.3 || x > 11.3 || z < -7.4 || z > 7.9) continue;
+  specs.forEach((spec, i) => {
+    const c = Math.cos(spec.ry);
+    const s = Math.sin(spec.ry);
+    const putLocal = (mesh, index, lx, ly, lz) => {
+      dummy.position.set(spec.x + lx * c + lz * s, ly, spec.z - lx * s + lz * c);
+      dummy.rotation.set(0, spec.ry, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(index, dummy.matrix);
+    };
+    putLocal(seatM, i, 0, 0.3, 0);
+    putLocal(backM, i, 0, 0.72, -0.24);
+    putLocal(armM, i * 2, -wide / 2 + 0.06, 0.42, 0);
+    putLocal(armM, i * 2 + 1, wide / 2 - 0.06, 0.42, 0);
+    [-0.64, 0, 0.64].forEach((lx) => {
+      const lz = -0.02;
       seats.push({
-        x, z,
-        face: Math.atan2(LOUNGE.x - x, LOUNGE.z - z)
+        x: spec.x + lx * c + lz * s,
+        z: spec.z - lx * s + lz * c,
+        face: spec.ry
       });
-    }
+    });
   });
-  if (seats.length < n) {
-    for (let i = seats.length; i < n; i++) {
-      seats.push({ x: LOUNGE.x + ((i % 8) - 3.5) * 0.7, z: 2.15, face: 0 });
-    }
-  }
-  return seats.slice(0, Math.max(n, seats.length));
+  office.add(seatM, backM, armM);
+  loungeSeats = seats;
 }
 
 function effective(entry) {
@@ -712,12 +690,82 @@ function simFor(bot, now) {
   return { state: 'idle', task: '', with: [] };
 }
 
-function destFor(bot) {
-  if (bot.state === 'offline') return bot.desk;
-  if (bot.id === 'kelvin' && (bot.state === 'working' || bot.state === 'collaborating')) return bot.desk;
-  if (bot.state === 'working') return bot.desk;
-  if (bot.state === 'collaborating') return bot.handoff || HAND_SPOTS[0];
-  return bot.lounge;
+/* Lounge only when it is honest and the office would not look abandoned.
+   Fresh working/collaborating always stay at a desk (a collaborator may
+   step over to Kelvin and come back). Offline bots sit on a sofa.
+   Buzz with no report, or none in 24h, sit on a sofa — that is Stewart's
+   example for Phoenix and the jobs group. Everyone else with an old or
+   missing report sits calmly at their own desk, lamp off. Never mark a
+   stale task as working. */
+function parkedFor(bot, entry, next, sim) {
+  if (next.state === 'working' || next.state === 'collaborating') return false;
+  if (next.state === 'offline') return true;
+  if (sim) return false;
+  if (bot.team !== 'buzz') return false;
+  const at = entry ? Date.parse(entry.updated_at || '') : NaN;
+  return !Number.isFinite(at) || Date.now() - at > DAY_MS;
+}
+
+function targetFor(bot) {
+  if (bot.visit && (bot.visit.phase === 'walk' || bot.visit.phase === 'dwell')) {
+    return bot.handoff || bot.desk;
+  }
+  return bot.parked ? bot.lounge : bot.desk;
+}
+
+function nearSpot(bot, spot) {
+  if (!spot) return false;
+  return Math.hypot(bot.rig.root.position.x - spot.x, bot.rig.root.position.z - spot.z) < 0.22;
+}
+
+function go(bot, dest) {
+  if (!dest) return;
+  const same = bot.dest && Math.hypot(bot.dest.x - dest.x, bot.dest.z - dest.z) < 0.08;
+  if (same && (bot.settled || bot.path.length)) return;
+  bot.dest = dest;
+  bot.path = route(
+    { x: bot.rig.root.position.x, z: bot.rig.root.position.z },
+    { x: dest.x, z: dest.z }
+  );
+  bot.settled = false;
+}
+
+function tickVisit(bot, nowMs) {
+  const collab = bot.state === 'collaborating' && bot.id !== 'kelvin';
+  if (!collab) return;
+  if (!bot.visit) bot.visit = { phase: 'walk', sent: false };
+  if (bot.visit.phase === 'walk') {
+    if (!bot.visit.sent) {
+      bot.visit.sent = true;
+      go(bot, bot.handoff || bot.desk);
+    } else if (bot.settled && nearSpot(bot, bot.handoff)) {
+      bot.visit = { phase: 'dwell', until: nowMs + VISIT_MS };
+    }
+  } else if (bot.visit.phase === 'dwell' && nowMs >= bot.visit.until) {
+    bot.visit = { phase: 'return' };
+    go(bot, bot.desk);
+  } else if (bot.visit.phase === 'return' && bot.settled && nearSpot(bot, bot.desk)) {
+    bot.visit = { phase: 'home' };
+  }
+}
+
+function placeLamp(bot) {
+  if (!lampShade) return;
+  const on = !!bot.live;
+  const x = bot.desk.x + 0.4;
+  const z = bot.desk.z + 0.32;
+  dummy.position.set(x, on ? FY + 0.82 : -6, z);
+  dummy.rotation.set(Math.PI, 0, 0);
+  dummy.scale.set(1, 1, 1);
+  dummy.updateMatrix();
+  lampShade.setMatrixAt(bot.index, dummy.matrix);
+  dummy.rotation.set(0, 0, 0);
+  dummy.position.set(x, on ? FY + 0.68 : -6, z);
+  dummy.updateMatrix();
+  lampPole.setMatrixAt(bot.index, dummy.matrix);
+  dummy.rotation.set(0, 0, 0);
+  lampColor.setHex(bot.hex);
+  lampShade.setColorAt(bot.index, lampColor);
 }
 
 function assignHandoffs() {
@@ -744,11 +792,12 @@ function paintBot(bot) {
     slot.mesh.setColorAt(slot.i, c);
     slot.mesh.instanceColor.needsUpdate = true;
   });
-  chairMesh.setColorAt(bot.index, color);
+  chairMesh.setColorAt(bot.index, new THREE.Color(bot.hex));
   chairMesh.instanceColor.needsUpdate = true;
-  const on = bot.state === 'working' || (bot.id === 'kelvin' && bot.state === 'collaborating');
+  const on = !!bot.live;
   screenMesh.setColorAt(bot.index, new THREE.Color(on ? ON_COLORS[bot.index % ON_COLORS.length] : 0x24343c));
   screenMesh.instanceColor.needsUpdate = true;
+  placeLamp(bot);
 }
 
 function apply(first) {
@@ -758,30 +807,50 @@ function apply(first) {
     lastStatus.bots.forEach((entry) => { if (entry && entry.id) statusMap.set(entry.id, entry); });
   }
   agents.forEach((bot) => {
-    const next = simulating ? simFor(bot, now) : effective(statusMap.get(bot.id));
+    const entry = statusMap.get(bot.id);
+    const next = simulating ? simFor(bot, now) : effective(entry);
+    const prev = bot.state;
     bot.state = next.state;
     bot.task = next.task;
     bot.with = next.with;
+    bot.live = next.state === 'working' || next.state === 'collaborating';
+    bot.parked = parkedFor(bot, entry, next, simulating);
+    if (bot.state === 'collaborating' && bot.id !== 'kelvin') {
+      if (prev !== 'collaborating' || !bot.visit) bot.visit = { phase: 'walk', sent: false };
+    } else {
+      bot.visit = null;
+    }
   });
   assignHandoffs();
   agents.forEach((bot) => {
     paintBot(bot);
-    const dest = destFor(bot);
-    const same = bot.dest && Math.hypot(bot.dest.x - dest.x, bot.dest.z - dest.z) < 0.08;
-    bot.dest = dest;
+    const home = bot.parked ? bot.lounge : bot.desk;
+    const dest = targetFor(bot);
     if (first || bot.state === 'offline') {
-      bot.rig.root.position.set(dest.x, 0, dest.z);
+      bot.rig.root.position.set(home.x, 0, home.z);
       bot.path = [];
       bot.settled = true;
       bot.walking = false;
-      bot.face = dest.face || 0;
+      bot.face = home.face || 0;
       bot.rig.root.rotation.y = bot.face;
-    } else if (!same) {
-      bot.path = route(
-        { x: bot.rig.root.position.x, z: bot.rig.root.position.z },
-        { x: dest.x, z: dest.z }
-      );
-      bot.settled = false;
+      bot.dest = home;
+      if (Math.hypot(dest.x - home.x, dest.z - home.z) > 0.08) {
+        bot.path = route(home, { x: dest.x, z: dest.z });
+        bot.settled = false;
+        bot.dest = dest;
+        if (bot.visit) bot.visit.sent = true;
+      }
+    } else {
+      const same = bot.dest && Math.hypot(bot.dest.x - dest.x, bot.dest.z - dest.z) < 0.08;
+      bot.dest = dest;
+      if (!same) {
+        bot.path = route(
+          { x: bot.rig.root.position.x, z: bot.rig.root.position.z },
+          { x: dest.x, z: dest.z }
+        );
+        bot.settled = false;
+        if (bot.visit && bot.visit.phase === 'walk') bot.visit.sent = true;
+      }
     }
     bot.tag.querySelector('.short').textContent = shortName(bot.name);
     const bits = [bot.name, STATE_WORD[bot.state] || 'Idle'];
@@ -791,6 +860,18 @@ function apply(first) {
     }
     bot.tag.querySelector('.full').textContent = bits.join(' · ');
   });
+  if (lampShade) {
+    lampShade.instanceMatrix.needsUpdate = true;
+    lampPole.instanceMatrix.needsUpdate = true;
+    if (lampShade.instanceColor) lampShade.instanceColor.needsUpdate = true;
+  }
+  const deskN = agents.filter((b) => !b.parked).length;
+  window.__office.seated = {
+    desk: deskN,
+    lounge: agents.length - deskN,
+    live: agents.filter((b) => b.live).length,
+    parked: agents.filter((b) => b.parked).map((b) => b.id)
+  };
   refreshTags();
   renderHud();
 }
@@ -923,9 +1004,10 @@ function stepAgent(bot, dt) {
 
 function applyPose(bot, dt, time) {
   const rig = bot.rig;
-  const standingCollab = bot.state === 'collaborating' && bot.id !== 'kelvin';
+  const visiting = bot.visit && (bot.visit.phase === 'walk' || bot.visit.phase === 'dwell');
+  const standingCollab = bot.state === 'collaborating' && bot.id !== 'kelvin' && !!visiting;
   const sit = bot.settled && !bot.walking && !standingCollab;
-  const typing = sit && (bot.state === 'working' || (bot.id === 'kelvin' && bot.state === 'collaborating'));
+  const typing = sit && !!bot.live;
   const carrying = standingCollab;
   rig.folder.scale.setScalar(carrying ? 1 : 0.0001);
   rig.arms[0].shoulder.rotation.z = 0.18;
@@ -1051,9 +1133,6 @@ function mountBots(list) {
     const group = byDept.get(def.id) || [];
     seats.set(def.id, desksFor(def, group.length));
   });
-  loungeSeats = makeLoungeSeats(list.length);
-  addLoungeStools();
-
   const n = list.length;
   const bodyMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   const geos = workstationGeos();
@@ -1071,6 +1150,9 @@ function mountBots(list) {
   chairMesh = batch(geos.chair, bodyMat, n, true);
   const monitorM = batch(geos.monitor, lambert(0x16191e), n, false);
   screenMesh = batch(geos.screen, new THREE.MeshBasicMaterial({ color: 0xffffff }), n, false);
+  lampMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xfff1cc, emissiveIntensity: 0.35 });
+  lampShade = batch(new THREE.ConeGeometry(0.1, 0.14, 8), lampMat, n, false);
+  lampPole = batch(new THREE.CylinderGeometry(0.018, 0.022, 0.22, 6), lambert(0x2a241e), n, false);
   const badgeMesh = {};
   ORDER.forEach((dept) => {
     const kind = ACCESSORY[dept];
@@ -1079,7 +1161,7 @@ function mountBots(list) {
     badgeMesh[kind] = batch(badges[kind], lambert(BADGE_COLOR[kind]), count, false);
   });
   botMeshes = [headM, capM, torsoM, thighM, shinM, upperM, foreM, eyeM, folderM, ...Object.values(badgeMesh)];
-  scene.add(headM, capM, torsoM, thighM, shinM, upperM, foreM, eyeM, folderM, deskM, chairMesh, monitorM, screenMesh, ...Object.values(badgeMesh));
+  scene.add(headM, capM, torsoM, thighM, shinM, upperM, foreM, eyeM, folderM, deskM, chairMesh, monitorM, screenMesh, lampShade, lampPole, ...Object.values(badgeMesh));
   const badgeIndex = {};
   const tagId = (mesh, i, id) => {
     if (!mesh.userData.ids) mesh.userData.ids = [];
@@ -1094,7 +1176,6 @@ function mountBots(list) {
     const rig = makeRig();
     office.add(rig.root);
     const desk = seats.get(dept)[gi];
-    const lounge = loungeSeats[index % loungeSeats.length];
     const tag = document.createElement('div');
     tag.className = 'tag';
     const short = document.createElement('div');
@@ -1113,8 +1194,8 @@ function mountBots(list) {
     rig.root.add(label);
 
     const bot = {
-      ...raw, dept, hex, index, rig, tag, desk, lounge,
-      state: 'idle', task: '', with: [],
+      ...raw, dept, hex, index, rig, tag, desk, lounge: loungeSeats[0],
+      state: 'idle', task: '', with: [], live: false, parked: false, visit: null,
       path: [], dest: null, walking: false, settled: true, face: 0,
       phase: 0, seed: hash(raw.id) % 10, speed: 2.05 + (hash(raw.id) % 5) * 0.08,
       parts: [], colors: []
@@ -1153,8 +1234,26 @@ function mountBots(list) {
     agents.push(bot);
     byId.set(raw.id, bot);
   });
+  const buzz = agents.filter((bot) => bot.team === 'buzz');
+  const rest = agents.filter((bot) => bot.team !== 'buzz');
+  buzz.forEach((bot, i) => { bot.lounge = loungeSeats[i % loungeSeats.length]; });
+  rest.forEach((bot, i) => { bot.lounge = loungeSeats[(buzz.length + i) % loungeSeats.length]; });
   chairMesh.instanceColor.needsUpdate = true;
   screenMesh.instanceColor.needsUpdate = true;
+}
+
+function flickerScreens(time) {
+  let any = false;
+  agents.forEach((bot) => {
+    if (!bot.live) return;
+    any = true;
+    flickerA.setHex(ON_COLORS[bot.index % ON_COLORS.length]);
+    const pulse = 0.5 + 0.5 * Math.sin(time * 10 + bot.seed);
+    flickerA.lerp(flickerB, pulse * 0.62);
+    screenMesh.setColorAt(bot.index, flickerA);
+  });
+  if (any && screenMesh.instanceColor) screenMesh.instanceColor.needsUpdate = true;
+  if (lampMat) lampMat.emissiveIntensity = any ? 0.3 + Math.abs(Math.sin(time * 2.6)) * 0.45 : 0.2;
 }
 
 function dropShadows() {
@@ -1181,11 +1280,15 @@ function frame(now) {
       apply(false);
     }
   }
-  agents.forEach((bot) => stepAgent(bot, dt));
+  agents.forEach((bot) => {
+    tickVisit(bot, now);
+    stepAgent(bot, dt);
+  });
   separateWalkers();
   agents.forEach((bot) => applyPose(bot, dt, time));
   syncBots();
   stepYard(dt, time);
+  flickerScreens(time);
   screenAcc += dt;
   if (screenAcc > 0.25) {
     screenAcc = 0;
@@ -1299,6 +1402,7 @@ async function boot() {
   wallScreens.forEach((screen) => drawScreen(screen, 0, screen.accent));
   window.__office.booted = true;
   window.__office.bots = agents.length;
+  window.__office.camera = camera;
   requestAnimationFrame(frame);
   setInterval(async () => {
     try {

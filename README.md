@@ -8,16 +8,17 @@ Three.js is MIT licensed and loaded from jsDelivr (`three@0.170.0`). The rendere
 
 ## What you see
 
-The hut is a cutaway office so the floor stays readable. Department names are lettered into the carpets: Websites / SEO / Social, Office & Phones, Jobs, Money, Research, Study, and Housekeeping. Kelvin, the lead, has a glass-walled corner office. The middle of the floor is a lounge. There is a break counter, a research wall with animated screens, a blinking server rack, and plants. Bots are small blocky people in flat matte colours, each with a job accessory. Name tags stay small and low contrast. Idle bots show a name only on hover or tap. Nothing is drawn over the carpet lettering.
+The page header reads **SR Electrical & Security Operations**. The hut is a cutaway office so the floor stays readable. Department names are lettered into the carpets: Websites / SEO / Social, Office & Phones, Jobs, Money, Research, Study, and Housekeeping. Kelvin, the lead, has a glass-walled corner office. The middle of the floor is a lounge with sofas. There is a break counter, a research wall with animated screens, a blinking server rack, and plants. Bots are small blocky people in flat matte colours, each with a job accessory. Name tags stay small and low contrast. Idle bots show a name only on hover or tap. Nothing is drawn over the carpet lettering.
 
-- **Working** bots walk to their own desk and sit. A short task label is on the roster, not a usage board.
-- **Idle** bots sit in the lounge and do not bob. Idle does not expire.
-- **Collaborating** bots carry a folder to Kelvin's office. Kelvin stays at his desk.
-- **Offline** bots stay at their desk, greyed out. This does not expire.
+- **Working** bots sit at their own desk, with a desk lamp in their colour, and type. The screen flickers. A short task label is on the roster, not a usage board.
+- **Idle** bots that reported in the last 24 hours sit at their desk, calm, lamp off. Idle does not expire.
+- **Buzz** bots (Jobs: Phoenix and the rest) with no update in 24 hours sit still on the lounge sofas. They do not walk in a circle. Other bots with an old or missing report stay at their desks, so the office does not look empty. A stale task is never shown as working.
+- **Collaborating** bots are lit like working bots. They may carry a folder to Kelvin, wait a moment, then return to their desk and type. Kelvin stays at his desk.
+- **Offline** bots are grey and sit on a lounge sofa. This does not expire.
 
 Desks come from `data/bots.json`, so adding a bot adds a desk.
 
-Outside, and still in frame: the hut on its wheels, a barn conversion beside it, a fenced paddock with two black horses and stables, two red miniature poodles, six ducks on a pond, chickens, caravans nearby and a couple further off, and a wizard in a pointy hat doing groundworks with a digger. Parked on the gravel are a white Transporter-style van marked Stewart Rawson Electrical, a smaller van marked SR Security, and a black Tesla Model Y on black wheels. Animals move gently. The sky tint follows UK time (night, dawn, day, dusk). The Now / Day / Evening / Night buttons lock it. `?sky=night` (or `dawn`, `day`, `dusk`, `evening`) still works.
+Outside, and still in frame: the hut on its wheels, a barn conversion with a small open kitchen, a fenced paddock with two black horses and stables, two red-apricot miniature poodles by the vans, six ducks on a pond, chickens, caravans nearby and a couple further off, and a wizard in a pointy hat doing groundworks with a digger beside a white caravan. Parked on the gravel are a white Transporter-style van marked Stewart Rawson Electrical, a smaller van marked SR Security, and a black Tesla Model Y on black wheels. Morgan, Ryan, and Stewart stand with the vans. Jen is in the kitchen. Bella and George play in the yard, with a green buggy, a quad bike, Fred, and a ju-jitsu gi nearby. Animals and people move gently. The sky tint follows UK time (night, dawn, day, dusk). The Now / Day / Evening / Night buttons lock it. `?sky=night` (or `dawn`, `day`, `dusk`, `evening`) still works.
 
 **Simulate Work**, at the bottom, animates example tasks in the browser only. It never writes `status.json`. A small Simulation label shows while it runs. `?simulate=1` starts it (`?demo=1` does the same).
 
@@ -47,7 +48,7 @@ Edit `data/bots.json`. Each entry is `id`, `name`, `emoji`, `team` (`grok` or `b
 
 **No customer data.** Task labels stay generic. The updater rejects emails, long numbers, and money amounts.
 
-A `working` or `collaborating` entry older than 10 minutes is shown as idle, so a stale "working" flag does not leave someone typing. An explicit `idle` does not expire. An explicit `offline` stays offline. A bot with no status entry is idle. The `/2d/` page is untouched and still uses its own, longer stale rule.
+A `working` or `collaborating` entry older than 10 minutes is shown as idle, so a stale "working" flag does not leave someone typing or switch on a desk lamp. An explicit `idle` does not expire. An explicit `offline` stays offline and sits in the lounge. A bot with no status entry is idle. Buzz bots with no update in the last 24 hours (including never reported) sit on the lounge sofas. Other bots with an old or missing report stay at their desks. The `/2d/` page is untouched and still uses its own, longer stale rule.
 
 ## One-line status update
 
