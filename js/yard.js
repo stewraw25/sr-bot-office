@@ -262,8 +262,8 @@ function buildVehicles(scene) {
   scene.add(sec);
 
   const tesla = new THREE.Group();
-  const lower = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.32, 2.3), lambert(0x121212));
-  lower.position.y = 0.34;
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.32, 2.55), lambert(0x121212));
+  lower.position.y = 0.36;
   const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.4, 1.2), lambert(0x161616));
   cabin.position.set(0, 0.68, -0.02);
   const hatch = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.1, 0.66), lambert(0x141414));
@@ -272,10 +272,16 @@ function buildVehicles(scene) {
   const tglass = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.86), basic(0x1a242c));
   tglass.position.set(0, 0.8, 0.04);
   tesla.add(lower, cabin, hatch, tglass);
-  wheel(tesla, 0.68, 0.3, 0.95, 0.3);
-  wheel(tesla, -0.68, 0.3, 0.95, 0.3);
-  wheel(tesla, 0.68, 0.3, -0.95, 0.3);
-  wheel(tesla, -0.68, 0.3, -0.95, 0.3);
+  [0.74, -0.74].forEach((x) => [0.66, -0.66].forEach((z) => {
+    wheel(tesla, x, 0.32, z, 0.34);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.22, 8), lambert(0x5c5c5c));
+    hub.rotation.z = Math.PI / 2;
+    hub.position.set(x, 0.32, z);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.04, 6, 14), lambert(0x8d8d8d));
+    rim.rotation.y = Math.PI / 2;
+    rim.position.set(x, 0.32, z);
+    tesla.add(hub, rim);
+  }));
   tesla.position.set(-6.0, 0, 12.6);
   tesla.rotation.y = -0.35;
   scene.add(tesla);
@@ -425,6 +431,7 @@ function personTag(name) {
 function buildPerson(scene, spec) {
   const s = spec.scale || 1;
   const legMul = spec.leg || 1;
+  const bulk = spec.bulk || 1;
   const g = new THREE.Group();
   const skin = spec.skin || 0xf1c7a4;
   const top = spec.top;
@@ -437,7 +444,21 @@ function buildPerson(scene, spec) {
   g.add(hip);
 
   const body = [];
-  if (spec.dress) {
+  if (spec.gown) {
+    const gownH = 0.8 * s;
+    const gownY = 0.02 - hip.position.y + gownH / 2;
+    body.push(colored(new THREE.ConeGeometry(0.5 * bulk * s, gownH, 10), top, 0, gownY, 0));
+    body.push(colored(new THREE.SphereGeometry(0.15 * bulk * s, 8, 6), top, 0, 0.12 * s, 0.1 * bulk * s));
+    body.push(colored(new THREE.BoxGeometry(0.18 * s, 0.035 * s, 0.04 * s), 0xf4efe4, 0, 0.02 * s, 0.16 * bulk * s));
+    [-1, 1].forEach((side) => {
+      body.push(colored(new THREE.BoxGeometry(0.14 * s, 0.045 * s, 0.24 * s), 0x6e221c, side * 0.18 * s, gownY - gownH / 2 + 0.03 * s, 0.1 * s));
+    });
+  } else if (spec.frill) {
+    body.push(colored(new THREE.ConeGeometry(0.52 * s, 0.68 * s, 10), top, 0, -0.1 * s, 0));
+    body.push(colored(new THREE.ConeGeometry(0.32 * s, 0.2 * s, 8), 0xfff8f2, 0, 0.04 * s, 0.02 * s));
+    body.push(colored(new THREE.TorusGeometry(0.46 * s, 0.045 * s, 6, 14), 0xfff8f2, 0, -0.38 * s, 0, -Math.PI / 2));
+    body.push(colored(new THREE.TorusGeometry(0.34 * s, 0.03 * s, 6, 12), 0xfff4ea, 0, -0.18 * s, 0, -Math.PI / 2));
+  } else if (spec.dress) {
     body.push(colored(new THREE.ConeGeometry(0.5 * s, 0.66 * s, 8), top, 0, -0.12 * s, 0));
   } else {
     [-1, 1].forEach((side) => {
@@ -446,7 +467,9 @@ function buildPerson(scene, spec) {
       body.push(colored(new THREE.BoxGeometry(0.14 * s, 0.06 * s, 0.22 * s), shoe, side * 0.1 * s, -legH - 0.01 * s, 0.04 * s));
     });
   }
-  body.push(colored(new THREE.BoxGeometry((spec.dress ? 0.5 : 0.42) * s, 0.4 * s, 0.24 * s), top, 0, 0.22 * s, 0));
+  const torsoW = (spec.gown ? 0.42 * bulk : (spec.dress || spec.frill) ? 0.5 : 0.42) * s;
+  const torsoD = (spec.gown ? 0.28 * bulk : 0.24) * s;
+  body.push(colored(new THREE.BoxGeometry(torsoW, (spec.gown ? 0.46 : 0.4) * s, torsoD), top, 0, 0.22 * s, 0));
   if (spec.belt) body.push(colored(new THREE.BoxGeometry(0.44 * s, 0.06 * s, 0.26 * s), 0x161616, 0, 0.02 * s, 0));
   body.push(colored(new THREE.BoxGeometry(0.28 * s, 0.26 * s, 0.26 * s), skin, 0, 0.58 * s, 0));
   [-1, 1].forEach((side) => {
@@ -457,6 +480,10 @@ function buildPerson(scene, spec) {
     body.push(colored(new THREE.IcosahedronGeometry(0.2 * s, 0), hair, 0.18 * s, 0.7 * s, 0.04 * s));
     body.push(colored(new THREE.IcosahedronGeometry(0.18 * s, 0), hair, -0.18 * s, 0.68 * s, -0.02 * s));
     body.push(colored(new THREE.IcosahedronGeometry(0.16 * s, 0), hair, 0.02 * s, 0.78 * s, -0.12 * s));
+    if (spec.frill) {
+      body.push(colored(new THREE.IcosahedronGeometry(0.14 * s, 0), hair, 0.1 * s, 0.92 * s, 0.08 * s));
+      body.push(colored(new THREE.IcosahedronGeometry(0.12 * s, 0), hair, -0.1 * s, 0.9 * s, 0.1 * s));
+    }
   } else if (spec.hairStyle === 'beanie') {
     const hat = spec.hat || 0x1d3f86;
     body.push(colored(new THREE.CylinderGeometry(0.16 * s, 0.17 * s, 0.16 * s, 8), hat, 0, 0.76 * s, 0));
@@ -471,13 +498,15 @@ function buildPerson(scene, spec) {
   hip.add(oneMesh(body));
 
   const arms = [];
-  const fore = spec.gi ? top : skin;
+  const fore = (spec.gi || spec.gown) ? top : skin;
+  const armX = (spec.gown ? 0.26 * bulk : 0.28) * s;
+  const armT = (spec.gown ? 0.13 : 0.1) * s;
   [-1, 1].forEach((side) => {
     const shoulder = new THREE.Group();
-    shoulder.position.set(side * 0.28 * s, 0.32 * s, 0);
+    shoulder.position.set(side * armX, 0.32 * s, 0);
     shoulder.add(oneMesh([
-      colored(new THREE.BoxGeometry(0.1 * s, 0.24 * s, 0.1 * s), top, 0, -0.14 * s, 0),
-      colored(new THREE.BoxGeometry(0.09 * s, 0.2 * s, 0.09 * s), fore, 0, -0.34 * s, 0),
+      colored(new THREE.BoxGeometry(armT, 0.24 * s, armT), top, 0, -0.14 * s, 0),
+      colored(new THREE.BoxGeometry(armT * 0.9, 0.2 * s, armT * 0.9), fore, 0, -0.34 * s, 0),
       colored(new THREE.BoxGeometry(0.08 * s, 0.07 * s, 0.08 * s), skin, 0, -0.46 * s, 0)
     ]));
     hip.add(shoulder);
@@ -600,6 +629,14 @@ function buildHousehold(scene) {
     top: 0xd23b78, hair: 0x6b3a22, hairStyle: 'frizz', dress: true, mode: 'cook', phase: 0.6
   });
   buildPerson(scene, {
+    name: 'Lauraine', x: 14.22, z: 5.18, ry: Math.PI, scale: 1,
+    top: 0xe7a0c4, hair: 0xf4f1ea, hairStyle: 'frizz', frill: true, mode: 'cook', phase: 2.2
+  });
+  buildPerson(scene, {
+    name: 'Huw', x: 15.05, z: 6.45, ry: 0.15, scale: 1.08, bulk: 1.75,
+    top: 0xc43030, hair: 0x4a3424, hairStyle: 'short', gown: true, phase: 1.1
+  });
+  buildPerson(scene, {
     name: 'Bella', x: 0.15, z: 12.55, ry: 0.4, scale: 0.6,
     top: 0xf07ab0, legs: 0xf2d36a, hair: 0xc47a3a, hairStyle: 'short', mode: 'play', hop: true, phase: 0.3
   });
@@ -612,7 +649,7 @@ function buildHousehold(scene) {
     top: 0xc43838, legs: 0x2a3a55, hair: 0x2a211c, hairStyle: 'short', phase: 2.6
   });
   buildPerson(scene, {
-    name: 'Ju-jitsu', x: 3.15, z: 11.5, ry: -0.4, scale: 1,
+    name: 'Erin', x: 3.15, z: 11.5, ry: -0.4, scale: 1,
     top: 0xf7f7f5, legs: 0xf4f4f2, hair: 0x1a120e, hairStyle: 'long',
     gi: true, belt: true, shoes: 0xf7f7f5, mode: 'practice', phase: 0.9
   });
