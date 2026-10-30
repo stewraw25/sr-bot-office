@@ -18,11 +18,11 @@ function wheel(parent, x, y, z, r) {
   parent.add(w);
 }
 
-function caravan(scene, x, z, s, color) {
+function caravan(scene, x, z, s, color, roofColor = 0xf4f1ea) {
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(1.15 * s, 0.85 * s, 2.1 * s), lambert(color));
   body.position.y = 0.7 * s;
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.2 * s, 0.12 * s, 2.2 * s), lambert(0xf4f1ea));
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.2 * s, 0.12 * s, 2.2 * s), lambert(roofColor));
   roof.position.y = 1.16 * s;
   const door = new THREE.Mesh(new THREE.BoxGeometry(0.08 * s, 0.55 * s, 0.32 * s), lambert(0x6a4630));
   door.position.set(0.58 * s, 0.7 * s, 0.3 * s);
@@ -70,12 +70,12 @@ export function buildYard(scene) {
   grass.position.y = -0.02;
   scene.add(grass);
 
-  const dirt = new THREE.Mesh(new THREE.CircleGeometry(1.8, 16), lambert(0x8a6844));
+  const dirt = new THREE.Mesh(new THREE.CircleGeometry(1.45, 16), lambert(0x8a6844));
   dirt.rotation.x = -Math.PI / 2;
-  dirt.position.set(15.0, 0.01, -10.5);
+  dirt.position.set(-5.5, 0.01, -11.6);
   scene.add(dirt);
   const mound = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.38, 6), lambert(0x6e5034));
-  mound.position.set(15.9, 0.18, -10.9);
+  mound.position.set(-4.6, 0.18, -12.15);
   scene.add(mound);
 
   const gravel = new THREE.Mesh(new THREE.BoxGeometry(12, 0.04, 3.4), lambert(0x9a9288));
@@ -91,7 +91,7 @@ export function buildYard(scene) {
   buildWizard(scene);
   [[-18.4, -4.2], [-18.6, 8.2], [17.6, -5.4], [17.2, 6.4], [-5.5, -14.2], [9.5, 13.2]].forEach(([x, z], i) => tree(scene, x, z, 0.7 + (i % 3) * 0.2));
 
-  caravan(scene, -8.2, -12.6, 0.85, 0xf3ecdf);
+  caravan(scene, -8.2, -12.6, 0.9, 0xffffff, 0xf7f7f5);
   caravan(scene, -1.4, -13.2, 0.8, 0xdfeadf);
   caravan(scene, 6.4, -12.4, 0.78, 0xf0d8c0);
   caravan(scene, -22, -17.5, 0.42, 0xefe6d6);
@@ -256,22 +256,22 @@ function buildVehicles(scene) {
   scene.add(sec);
 
   const tesla = new THREE.Group();
-  const lower = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.42, 2.55), lambert(0x121212));
-  lower.position.y = 0.48;
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.16, 0.42, 1.25), lambert(0x161616));
-  cabin.position.set(0, 0.82, -0.05);
-  const hatch = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.12, 0.7), lambert(0x141414));
-  hatch.position.set(0, 0.98, -0.78);
-  hatch.rotation.x = -0.4;
-  const tglass = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.32, 0.9), basic(0x1a242c));
-  tglass.position.set(0, 0.95, 0.05);
+  const lower = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.32, 2.3), lambert(0x121212));
+  lower.position.y = 0.34;
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.4, 1.2), lambert(0x161616));
+  cabin.position.set(0, 0.68, -0.02);
+  const hatch = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.1, 0.66), lambert(0x141414));
+  hatch.position.set(0, 0.82, -0.72);
+  hatch.rotation.x = -0.35;
+  const tglass = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.86), basic(0x1a242c));
+  tglass.position.set(0, 0.8, 0.04);
   tesla.add(lower, cabin, hatch, tglass);
-  wheel(tesla, 0.62, 0.32, 0.82, 0.32);
-  wheel(tesla, -0.62, 0.32, 0.82, 0.32);
-  wheel(tesla, 0.62, 0.32, -0.82, 0.32);
-  wheel(tesla, -0.62, 0.32, -0.82, 0.32);
-  tesla.position.set(-4.2, 0, 10.85);
-  tesla.rotation.y = 0.25;
+  wheel(tesla, 0.68, 0.3, 0.95, 0.3);
+  wheel(tesla, -0.68, 0.3, 0.95, 0.3);
+  wheel(tesla, 0.68, 0.3, -0.95, 0.3);
+  wheel(tesla, -0.68, 0.3, -0.95, 0.3);
+  tesla.position.set(-6.0, 0, 12.6);
+  tesla.rotation.y = -0.35;
   scene.add(tesla);
 }
 
@@ -417,8 +417,8 @@ function buildWizard(scene) {
     digger.add(track);
   });
   digger.add(chassis, cab, glass, boom);
-  mage.position.set(14.0, 0, -10.5);
-  digger.position.set(15.8, 0, -9.7);
+  mage.position.set(-6.35, 0, -11.15);
+  digger.position.set(-5.15, 0, -12.05);
   scene.add(mage, digger);
   animals.wizard = { mage, digger, boom, spade };
 }
@@ -522,8 +522,8 @@ export function stepYard(dt, t) {
   if (w) {
     w.spade.rotation.z = 0.25 + Math.sin(t * 1.6) * 0.45;
     w.boom.rotation.x = Math.sin(t * 0.8) * 0.25;
-    w.mage.rotation.y = 0.6 + Math.sin(t * 0.4) * 0.15;
-    w.digger.position.x = 15.8 + Math.sin(t * 0.25) * 0.28;
+    w.mage.rotation.y = 2.15 + Math.sin(t * 0.4) * 0.12;
+    w.digger.position.x = -5.15 + Math.sin(t * 0.25) * 0.28;
   }
   for (const c of animals.clouds) {
     c.position.x += dt * 0.35;
