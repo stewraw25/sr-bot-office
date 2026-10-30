@@ -1,29 +1,31 @@
 # SR Bot Office
 
-Live full-screen view of Stewart Rawson's AI bots, drawn as a shepherd's hut on a smallholding. Built for an office TV. The main page is a static Three.js scene (procedural primitives, no build step). A flat fallback of the same office is at `/2d/`. No paid services and no downloaded models.
+Live view of Stewart Rawson's AI bots, drawn as a warm low-poly shepherd's hut on a smallholding. Built for an office TV. The main page is a static Three.js scene (no build step). A flat fallback of the same roster is at `/2d/` and is unchanged. No paid services and no downloaded models.
 
 **Live:** https://stewraw25.github.io/sr-bot-office/
 
-Three.js is MIT licensed and loaded from jsDelivr (`three@0.170.0`). Pixel ratio is capped so a 4K TV does not render a full 4K framebuffer, and shadows use one 1024 map.
+Three.js is MIT licensed and loaded from jsDelivr (`three@0.170.0`). The renderer stays sharp: device pixel ratio is capped at 2, tone mapping is off, and there is no bloom. If a machine stays under 30 fps, shadows drop before resolution does. Bots, desks, and repeated yard pieces are instanced.
 
 ## What you see
 
-The hut is the office, with the barrel roof cut away so the room stays visible. Grok Bots sit toward the back, Buzz toward the front. Desks are laid out from `data/bots.json`, so adding a bot just adds a desk. Name and status labels sit above each bot and move aside when they would overlap.
+The hut is a cutaway office so the floor stays readable. Department names are lettered into the carpets: Websites / SEO / Social, Office & Phones, Jobs, Money, Research, Study, and Housekeeping. Kelvin, the lead, has a glass-walled corner office. The middle of the floor is a lounge. There is a break counter, a research wall with animated screens, a blinking server rack, and plants. Bots are small blocky people in flat matte colours, each with a job accessory. Name tags stay small and low contrast. Idle bots show a name only on hover or tap. Nothing is drawn over the carpet lettering.
 
-- **Working** bots walk to their desk, sit, and type. A bubble shows a short task label.
-- **Idle** bots wander between desks, the sofa, and the kettle.
-- **Collaborating** bots walk to a shared table. A line joins them and both bubbles show the task.
+- **Working** bots walk to their own desk and sit. A short task label is on the roster, not a usage board.
+- **Idle** bots sit in the lounge and do not bob. Idle does not expire.
+- **Collaborating** bots carry a folder to Kelvin's office. Kelvin stays at his desk.
 - **Offline** bots stay at their desk, greyed out. This does not expire.
 
-Outside the hut: a barn conversion, stables, two black horses, two red miniature poodles, six ducks, a dozen chickens, nearby and distant caravans, and a wizard doing groundworks. Parked by the hut are a white Stewart Rawson Electrical van, a smaller SR Security van, and a black Tesla Model Y. The sky tint follows UK time (night, dawn, day, dusk). Add `?sky=night` (or `dawn`, `day`, `dusk`) to lock it.
+Desks come from `data/bots.json`, so adding a bot adds a desk.
 
-`?demo=1` ignores `status.json` and animates example tasks in the browser only. Nothing is written.
+Outside, and still in frame: the hut on its wheels, a barn conversion beside it, a fenced paddock with two black horses and stables, two red miniature poodles, six ducks on a pond, chickens, caravans nearby and a couple further off, and a wizard in a pointy hat doing groundworks with a digger. Parked on the gravel are a white Transporter-style van marked Stewart Rawson Electrical, a smaller van marked SR Security, and a black Tesla Model Y on black wheels. Animals move gently. The sky tint follows UK time (night, dawn, day, dusk). The Now / Day / Evening / Night buttons lock it. `?sky=night` (or `dawn`, `day`, `dusk`, `evening`) still works.
 
-The mouse cursor hides after a few seconds. Fullscreen is the button, a double-click, or the `f` key. The header link **2D** opens the flat version.
+**Simulate Work**, at the bottom, animates example tasks in the browser only. It never writes `status.json`. A small Simulation label shows while it runs. `?simulate=1` starts it (`?demo=1` does the same).
+
+The cursor hides after a few seconds. Fullscreen is the button, a double-click, or the `f` key. The header link **2D** opens the flat version.
 
 ## Bots
 
-Edit `data/bots.json`. Each entry is `id`, `name`, `emoji`, `team` (`grok` or `buzz`), and `role`. Keep ids lowercase with hyphens. Mori is not a bot and is not in the list. SR-Planner-Agent is parked: leave it `offline`.
+Edit `data/bots.json`. Each entry is `id`, `name`, `emoji`, `team` (`grok` or `buzz`), and `role`. Keep ids lowercase with hyphens. Mori is not a bot and is not in the list. Kelvin is the lead. SR-Planner-Agent is parked: leave it `offline`.
 
 ## Status
 
@@ -41,11 +43,11 @@ Edit `data/bots.json`. Each entry is `id`, `name`, `emoji`, `team` (`grok` or `b
 }
 ```
 
-`state` is `working`, `idle`, `collaborating`, or `offline`. `task` is a short label, 40 characters max. `with` is bot ids, used when collaborating. The page polls about every 45 seconds.
+`state` is `working`, `idle`, `collaborating`, or `offline`. `task` is a short label, 40 characters max. `with` is bot ids, used when collaborating. The page polls about every 45 seconds. It never invents a status. If the feed is missing, everyone is shown idle.
 
 **No customer data.** Task labels stay generic. The updater rejects emails, long numbers, and money amounts.
 
-A `working`, `idle`, or `collaborating` entry older than about two hours is shown as idle. An explicit `offline` stays offline, so a parked bot does not start wandering just because the timestamp is old. A bot with no status entry is idle.
+A `working` or `collaborating` entry older than 10 minutes is shown as idle, so a stale "working" flag does not leave someone typing. An explicit `idle` does not expire. An explicit `offline` stays offline. A bot with no status entry is idle. The `/2d/` page is untouched and still uses its own, longer stale rule.
 
 ## One-line status update
 
@@ -75,3 +77,11 @@ curl -fsSL -X POST \
 ```
 
 The script re-reads `status.json`, retries if someone else wrote it first, and keeps the last 20 history rows.
+
+## Third-party
+
+The scene borrows from three MIT projects. Their licence notices are kept in `third_party/`, and the page footer links the repos.
+
+- [agent-office-3d](https://github.com/jefferysha0627/agent-office-3d) — Jeffery Sha, 2026. Desk, chair, and toy-rig proportions, and the walk pose. See `third_party/agent-office-3d-LICENSE`.
+- [Hermes3D](https://github.com/iamlukethedev/Hermes3D) — Luke The Dev, 2026. The idea of walking a handoff into the lead's office. See `third_party/Hermes3D-LICENSE`.
+- [hermes-virtual-office](https://github.com/JuniorXcoder/hermes-virtual-office) — Hermes Virtual Office Contributors, 2026. Blocky avatar parts and the wood-floor approach. See `third_party/hermes-virtual-office-LICENSE`.

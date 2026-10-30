@@ -20,16 +20,43 @@
 <body>
 <header id="topbar">
   <h1>SR Bot Office</h1>
-  <div id="clock"></div>
+  <span id="sim-pill" hidden>Simulation</span>
+  <span id="live" class="live">Live</span>
   <div id="counts"></div>
-  <div id="feed" class="feed">Live</div>
+  <div id="clock"></div>
   <a id="flat" href="2d/">2D</a>
   <button id="fullbtn" type="button">Fullscreen</button>
 </header>
-<footer id="ticker" aria-live="polite">
-  <div id="ticker-track" class="ticker-track"></div>
+<div id="view"></div>
+<aside id="roster">
+  <h2>Team</h2>
+  <div id="roster-list"></div>
+  <h2>Activity</h2>
+  <div id="activity"></div>
+</aside>
+<div id="bottom">
+  <div id="legend">
+    <span class="working">Working</span>
+    <span class="collaborating">Together</span>
+    <span class="idle">Idle</span>
+    <span class="offline">Offline</span>
+  </div>
+  <div id="skybar">
+    <button type="button" data-sky="now">Now</button>
+    <button type="button" data-sky="day">Day</button>
+    <button type="button" data-sky="evening">Evening</button>
+    <button type="button" data-sky="night">Night</button>
+  </div>
+  <button id="simbtn" type="button">Simulate Work</button>
+</div>
+<footer id="credits">
+  3D office adapts
+  <a href="https://github.com/jefferysha0627/agent-office-3d">agent-office-3d</a>,
+  <a href="https://github.com/iamlukethedev/Hermes3D">Hermes3D</a>
+  and
+  <a href="https://github.com/JuniorXcoder/hermes-virtual-office">hermes-virtual-office</a>
+  (MIT).
 </footer>
-<div id="demo-flag" hidden>DEMO</div>
 <div id="fps" hidden></div>
 <noscript><p class="noscript">SR Bot Office needs JavaScript enabled. The flat view is at <a href="2d/">2d/</a>.</p></noscript>
 <script type="module" src="js/office3d.js"></script>
