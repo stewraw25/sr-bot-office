@@ -10,8 +10,11 @@ Three.js is MIT licensed and loaded from jsDelivr (`three@0.170.0`). The rendere
 
 The page header reads **SR Electrical & Security Operations**. The hut is a cutaway office so the floor stays readable. Department names are lettered into the carpets: Websites / SEO / Social, Office & Phones, Jobs, Money, Research, Study, and Housekeeping. Kelvin, the lead, has a glass-walled corner office. The middle of the floor is a lounge with sofas. There is a break counter, a research wall with animated screens, a blinking server rack, and plants. Bots are small blocky people in flat matte colours, each with a job accessory. Name tags stay small and low contrast. Idle bots show a name only on hover or tap. Nothing is drawn over the carpet lettering.
 
-- **Working** bots sit at their own desk, with a desk lamp in their colour, and type. The screen flickers. A short task label is on the roster, not a usage board.
-- **Idle** bots that reported in the last 24 hours sit at their desk, calm, lamp off. Idle does not expire.
+- **Working** bots sit at their own desk, with a desk lamp in their colour, and type. The screen flickers and a green ring marks the desk. A speech bubble shows the short task. The same label is on the roster, not a usage board. When work starts, a bot who is not already in the chair walks over from the aisle and sits. Kelvin stays at his desk.
+- **Waiting** bots stay at the desk with a hand up, an amber ring, and a `?` badge. The bubble is the question they are stuck on.
+- **Error** bots stay at the desk with a red ring, a red screen, and a `!` badge. The bubble is the short failure.
+- **Done** bots stay at the desk, lamp off, with a blue bubble. It is not typing.
+- **Idle** bots that reported in the last 24 hours sit at their desk, calm, lamp off. They glance and sometimes stretch. They do not get up and walk. Idle does not expire. A thought bubble (`…`) appears now and then.
 - **Buzz** bots (Jobs: Phoenix and the rest) with no update in 24 hours sit still on the lounge sofas. They do not walk in a circle. Other bots with an old or missing report stay at their desks, so the office does not look empty. A stale task is never shown as working.
 - **Collaborating** bots are lit like working bots. They may carry a folder to Kelvin, wait a moment, then return to their desk and type. Kelvin stays at his desk.
 - **Offline** bots are grey and sit on a lounge sofa. This does not expire.
@@ -20,7 +23,9 @@ Desks come from `data/bots.json`, so adding a bot adds a desk.
 
 Outside, and still in frame: the hut on its wheels, a barn conversion with a small open kitchen, a fenced paddock with two black horses and stables, two red-apricot miniature poodles by the vans, six ducks on a pond, chickens, caravans nearby and a couple further off, and a wizard in a pointy hat doing groundworks with a digger beside a white caravan. Parked on the gravel are a white Transporter-style van marked Stewart Rawson Electrical, a smaller van marked SR Security, and a black Tesla Model Y on black wheels. Morgan, Ryan, and Stewart stand with the vans. Jen and Lauraine are in the kitchen. Bella and George play in the yard, with a green buggy, a quad bike, Fred, and Erin in a white gi nearby. Huw, in a red dressing gown, stands in the yard by the kitchen. A small Philippines island sits in the top corner, where Mori, the admin assistant, types at a desk and sends invoices. Animals and people move gently. The sky tint follows UK time (night, dawn, day, dusk). The Now / Day / Evening / Night buttons lock it. `?sky=night` (or `dawn`, `day`, `dusk`, `evening`) still works.
 
-**Simulate Work**, at the bottom, animates example tasks in the browser only. It never writes `status.json`. A small Simulation label shows while it runs. `?simulate=1` starts it (`?demo=1` does the same).
+**Simulate Work**, at the bottom, animates example tasks in the browser only. It never writes `status.json`. A small Simulation label shows while it runs. `?simulate=1` starts it (`?demo=1` does the same). The simulation includes working, handoffs, waiting, errors, and done, so the bubbles, badges, and the walk to a desk are visible. On load, some of the working bots start in the aisle and walk to their chairs. Later, about half of the bots that newly start work step out to the aisle and back. Everyone else stays seated, so the room still looks busy.
+
+A water cooler, a bookshelf, and a coat stand sit off the carpet titles. They are there so the room reads as a place people work, in the spirit of Pixel Agents' furniture. The yard outside is unchanged.
 
 The cursor hides after a few seconds. Fullscreen is the button, a double-click, or the `f` key. The header link **2D** opens the flat version.
 
@@ -44,11 +49,11 @@ Edit `data/bots.json`. Each entry is `id`, `name`, `emoji`, `team` (`grok` or `b
 }
 ```
 
-`state` is `working`, `idle`, `collaborating`, or `offline`. `task` is a short label, 40 characters max. `with` is bot ids, used when collaborating. The page polls about every 45 seconds. It never invents a status. If the feed is missing, everyone is shown idle.
+`state` is `working`, `idle`, `collaborating`, or `offline`. The page also understands `waiting_user`, `error`, and `done` if a feed sends them. `task` is a short label, 40 characters max. `with` is bot ids, used when collaborating. The page polls about every 45 seconds. It never invents a status. If the feed is missing, everyone is shown idle.
 
 **No customer data.** Task labels stay generic. The updater rejects emails, long numbers, and money amounts.
 
-A `working` or `collaborating` entry older than 10 minutes is shown as idle, so a stale "working" flag does not leave someone typing or switch on a desk lamp. An explicit `idle` does not expire. An explicit `offline` stays offline and sits in the lounge. A bot with no status entry is idle. Buzz bots with no update in the last 24 hours (including never reported) sit on the lounge sofas. Other bots with an old or missing report stay at their desks. The `/2d/` page is untouched and still uses its own, longer stale rule.
+A `working`, `collaborating`, `waiting_user`, `error`, or `done` entry older than 10 minutes is shown as idle, so a stale flag does not leave someone typing or switch on a desk lamp. An explicit `idle` does not expire. An explicit `offline` stays offline and sits in the lounge. A bot with no status entry is idle. Buzz bots with no update in the last 24 hours (including never reported) sit on the lounge sofas. Other bots with an old or missing report stay at their desks. The `/2d/` page is untouched and still uses its own, longer stale rule.
 
 ## One-line status update
 
@@ -77,7 +82,36 @@ curl -fsSL -X POST \
   -d '{"event_type":"set-status","client_payload":{"id":"kelvin","state":"working","task":"Weekly SEO check"}}'
 ```
 
-The script re-reads `status.json`, retries if someone else wrote it first, and keeps the last 20 history rows.
+The script re-reads `status.json`, retries if someone else wrote it first, and keeps the last 20 history rows. It still writes only `working`, `idle`, `collaborating`, and `offline`.
+
+## Live channel (optional)
+
+The 3D page can follow an [ntfy.sh](https://ntfy.sh) topic, the same way a live office can sit on a channel the bots already post to. Nothing in this repo names a topic. The name comes only from the URL hash:
+
+```text
+https://stewraw25.github.io/sr-bot-office/#<topic>
+```
+
+`<topic>` is the channel name: letters, numbers, `_` and `-`, up to 64 characters. The hash is not sent to GitHub. Without a hash, the page keeps reading `status.json`, and `?simulate=1` still runs only in this browser.
+
+The page loads the last 12 hours from `https://ntfy.sh/<topic>/json?poll=1&since=12h`, then follows `https://ntfy.sh/<topic>/sse`. Each message is one JSON object, at most 4 KB:
+
+```json
+{"bot":"Kelvin","status":"working","step":"Weekly SEO check"}
+```
+
+`status` is `working`, `idle`, `waiting_user`, `error`, or `done`. `step` is the bubble text. `bot` matches a name or an id in `data/bots.json`. Unknown names are ignored. These other lines are accepted and do not move anyone, so a mixed channel still works:
+
+```json
+{"roster":["Kelvin","Eden"]}
+{"looks":{"Kelvin":{"color":"#f26b4a"}}}
+{"groups":{"Kelvin":"Web"}}
+{"type":"usage","total_used_pct":37}
+```
+
+Desks, colours, and teams stay as they are in this office. A `working`, `waiting_user`, `error`, or `done` line older than 10 minutes is shown as idle. An explicit `idle` does not expire. Buzz bots with no line for a day sit on the sofas. A bot the channel has not mentioned yet stays at their desk, so the room does not empty while the history loads. A bot who is already seated and then starts work steps out to the aisle and back to the chair. The first batch, the 12 hour backfill, seats them straight away.
+
+`?simulate=1` is ignored while a hash is present, so the channel is what you see. The Simulate Work button still toggles the local demo.
 
 ## Third-party
 
@@ -86,3 +120,5 @@ The scene borrows from three MIT projects. Their licence notices are kept in `th
 - [agent-office-3d](https://github.com/jefferysha0627/agent-office-3d) — Jeffery Sha, 2026. Desk, chair, and toy-rig proportions, and the walk pose. See `third_party/agent-office-3d-LICENSE`.
 - [Hermes3D](https://github.com/iamlukethedev/Hermes3D) — Luke The Dev, 2026. The idea of walking a handoff into the lead's office. See `third_party/Hermes3D-LICENSE`.
 - [hermes-virtual-office](https://github.com/JuniorXcoder/hermes-virtual-office) — Hermes Virtual Office Contributors, 2026. Blocky avatar parts and the wood-floor approach. See `third_party/hermes-virtual-office-LICENSE`.
+- [Pixel Agents](https://github.com/pixel-agents-hq/pixel-agents) — Pablo De Lucca, 2026. Ideas only: walking to a desk when work starts, speech and thought bubbles, waiting and error badges, small idle motion, and break-room furniture (a cooler, a bookshelf, a coat stand). No pixel-art assets are copied; those characters belong to their own art pack. See `third_party/pixel-agents-LICENSE`.
+- [codila's live office](https://bodila51.github.io/grokbot-wallpaper/office/) — the optional hash channel. This page uses the same ntfy.sh backfill and SSE idea, and the same status, step, roster, looks, groups, and usage lines. The reader in `js/live.js` is original. No code was copied from that office.
