@@ -6,9 +6,15 @@
    waypoint graph instead of that project's stair nav.
    Carpet zones and wood use the hermes-virtual-office material approach
    (c) 2026 Hermes Virtual Office Contributors, MIT).
-   Licence texts: third_party/. Three.js (MIT) loads from jsDelivr.
+   Desk life (walk to the chair when work starts, task bubbles, waiting
+   and error badges, a glance and a stretch while idle, a cooler, a
+   bookshelf, and a coat stand) borrows ideas from Pixel Agents
+   (c) 2026 Pablo De Lucca, MIT). No pixel-art assets are copied.
+   An optional ntfy.sh channel, named only by the URL hash, follows the
+   status lines Stewart's bots already post. Licence texts: third_party/.
+   Three.js (MIT) loads from jsDelivr.
    The flat fallback at /2d/ is separate and untouched.
-   Status is read from status.json. Nothing in this file writes status. */
+   Status is read from status.json, or from the hash channel. Nothing here writes status. */
 import * as THREE from 'three';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import {
@@ -16,6 +22,7 @@ import {
   screenTexture, drawScreen, makeRig, workstationGeos, badgeGeos, shinGeo, foreGeo, batch
 } from './kit.js';
 import { buildYard, stepYard } from './yard.js';
+import { topicFromLocation, startLive } from './live.js';
 
 const STALE_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -62,12 +69,18 @@ const DEPT_NAME = {
   house: 'Housekeeping'
 };
 const ORDER = ['lead', 'web', 'office', 'jobs', 'money', 'research', 'study', 'house'];
-const STATE_WORD = { working: 'Working', idle: 'Idle', collaborating: 'Together', offline: 'Offline' };
+const STATE_WORD = {
+  working: 'Working', idle: 'Idle', collaborating: 'Together', offline: 'Offline',
+  waiting_user: 'Waiting', error: 'Error', done: 'Done'
+};
 const SIM_TASKS = [
   'Weekly SEO check', 'Inbox tidy', 'Call notes', 'Diary skim', 'Market scan',
   'Backtest review', 'Macro notes', 'Keyword pass', 'Site check', 'Desk research',
   'Statement run', 'Job notes', 'Cert booking', 'Risk scan', 'Overnight digest'
 ];
+const SIM_WAIT = ['Need a decision', 'Which option?', 'Waiting for you'];
+const SIM_ERR = ['Could not finish', 'Step failed', 'Try that again'];
+const SIM_DONE = ['Report sent', 'Draft ready', 'Task closed'];
 const ON_COLORS = [0x46e08a, 0x3ec6e0, 0x8fd46a, 0x5b9bff];
 const BADGE_COLOR = {
   monitor: 0x39c6e0, phone: 0x22262c, clip: 0xf2e2c4, coin: 0xe2b340,
@@ -99,7 +112,9 @@ const SKY = {
 };
 
 const params = new URLSearchParams(location.search);
-let simulating = params.get('simulate') === '1' || params.get('simulate') === 'true' || params.get('demo') === '1' || params.get('demo') === 'true';
+const liveTopic = topicFromLocation(location);
+const liveMode = !!liveTopic;
+let simulating = !liveMode && (params.get('simulate') === '1' || params.get('simulate') === 'true' || params.get('demo') === '1' || params.get('demo') === 'true');
 let skyLock = params.get('sky');
 if (skyLock === 'evening') skyLock = 'dusk';
 if (!['night', 'dawn', 'day', 'dusk'].includes(skyLock)) skyLock = null;
@@ -126,8 +141,14 @@ let chairMesh = null;
 let lampShade = null;
 let lampPole = null;
 let lampMat = null;
+let ringMesh = null;
 let lastStatus = null;
 let feedOk = true;
+const liveEntries = new Map();
+const liveHistory = [];
+let liveTimer = 0;
+let liveHandle = null;
+let liveBursts = 0;
 let hoverId = null;
 let pinned = null;
 let sig = '';
@@ -527,6 +548,46 @@ function buildProps() {
     office.add(bezel);
     wallScreens.push(screen);
   });
+  addLifeProps();
+}
+
+/* Water cooler, bookshelf, and coat stand. The idea of a break corner
+   and a little storage comes from Pixel Agents' furniture. These are
+   original boxes, and they sit off the carpet titles. */
+function addLifeProps() {
+  const cooler = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.7, 0.32), lambert(0xd5dee6));
+  body.position.y = 0.42;
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.14, 0.34), lambert(0x3d8fd0));
+  cap.position.y = 0.82;
+  const tap = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.08), lambert(0xb7c0c8));
+  tap.position.set(0, 0.58, 0.18);
+  cooler.add(body, cap, tap);
+  cooler.position.set(-11.15, 0, 1.55);
+  office.add(cooler);
+
+  const shelf = new THREE.Group();
+  const bookcase = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.7, 0.26), lambert(0x6a432c));
+  bookcase.position.y = 0.38;
+  shelf.add(bookcase);
+  [0xc4483a, 0x2f6f86, 0xe0b03a, 0x3c6b4a, 0x243a6b].forEach((hex, i) => {
+    const book = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.18), lambert(hex));
+    book.position.set(-0.32 + i * 0.16, 0.6, 0.01);
+    shelf.add(book);
+  });
+  shelf.position.set(-9.15, 0, 7.82);
+  office.add(shelf);
+
+  const coat = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.02, 6), lambert(0x2a241e));
+  pole.position.y = 0.51;
+  const hook = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.045, 0.045), lambert(0x2a241e));
+  hook.position.y = 1.0;
+  const jacket = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.42, 0.07), lambert(0x1f4f86));
+  jacket.position.set(-0.1, 0.7, 0.02);
+  coat.add(pole, hook, jacket);
+  coat.position.set(10.15, 0, 7.72);
+  office.add(coat);
 }
 
 function buildGraph() {
@@ -664,17 +725,23 @@ function buildLoungeSofas() {
   loungeSeats = seats;
 }
 
+const ACTIVE = new Set(['working', 'collaborating', 'waiting_user', 'error', 'done']);
+
+function clipTask(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+}
+
 function effective(entry) {
   if (!entry || typeof entry !== 'object') return { state: 'idle', task: '', with: [] };
   const state = entry.state;
-  if (state === 'offline') return { state: 'offline', task: String(entry.task || ''), with: [] };
+  if (state === 'offline') return { state: 'offline', task: clipTask(entry.task), with: [] };
   if (state === 'idle') return { state: 'idle', task: '', with: [] };
-  if (state !== 'working' && state !== 'collaborating') return { state: 'idle', task: '', with: [] };
+  if (!ACTIVE.has(state)) return { state: 'idle', task: '', with: [] };
   const t = Date.parse(entry.updated_at || '');
   if (!Number.isFinite(t) || Date.now() - t > STALE_MS) return { state: 'idle', task: '', with: [] };
   return {
     state,
-    task: String(entry.task || '').slice(0, 40),
+    task: clipTask(entry.task || entry.step),
     with: Array.isArray(entry.with) ? entry.with.map(String) : []
   };
 }
@@ -683,10 +750,13 @@ function simFor(bot, now) {
   if (bot.id === 'sr-planner-agent') return { state: 'offline', task: 'Parked', with: [] };
   if (bot.id === 'kelvin') return { state: 'working', task: 'Weekly SEO check', with: [] };
   const bucket = Math.floor(now / 28000);
-  const n = (hash(bot.id) + bucket * 3) % 10;
+  const n = (hash(bot.id) + bucket * 3) % 12;
   const task = SIM_TASKS[hash(bot.id + ':' + bucket) % SIM_TASKS.length];
   if (n < 6) return { state: 'working', task, with: [] };
   if (n < 8) return { state: 'collaborating', task: 'Handoff to lead', with: ['kelvin'] };
+  if (n === 8) return { state: 'waiting_user', task: SIM_WAIT[hash(bot.id + ':w:' + bucket) % SIM_WAIT.length], with: [] };
+  if (n === 9) return { state: 'error', task: SIM_ERR[hash(bot.id + ':e:' + bucket) % SIM_ERR.length], with: [] };
+  if (n === 10) return { state: 'done', task: SIM_DONE[hash(bot.id + ':d:' + bucket) % SIM_DONE.length], with: [] };
   return { state: 'idle', task: '', with: [] };
 }
 
@@ -698,12 +768,32 @@ function simFor(bot, now) {
    missing report sits calmly at their own desk, lamp off. Never mark a
    stale task as working. */
 function parkedFor(bot, entry, next, sim) {
-  if (next.state === 'working' || next.state === 'collaborating') return false;
+  if (next.state === 'working' || next.state === 'collaborating' || next.state === 'waiting_user' || next.state === 'error' || next.state === 'done') return false;
   if (next.state === 'offline') return true;
   if (sim) return false;
   if (bot.team !== 'buzz') return false;
+  if (liveMode && !entry) return false;
   const at = entry ? Date.parse(entry.updated_at || '') : NaN;
   return !Number.isFinite(at) || Date.now() - at > DAY_MS;
+}
+
+function aisleNear(bot) {
+  if (bot.approach) return bot.approach;
+  let best = null;
+  let bestD = Infinity;
+  graph.forEach((node) => {
+    const d = Math.hypot(node.x - bot.desk.x, node.z - bot.desk.z);
+    if (d < 0.55) return;
+    if (d < bestD) { bestD = d; best = node; }
+  });
+  bot.approach = best
+    ? { x: best.x, z: best.z, face: Math.atan2(bot.desk.x - best.x, bot.desk.z - best.z) }
+    : { x: bot.desk.x, z: bot.desk.z - 1.05, face: 0 };
+  return bot.approach;
+}
+
+function deskHot(bot) {
+  return bot.state === 'working' || bot.state === 'collaborating' || bot.state === 'waiting_user' || bot.state === 'error' || bot.state === 'done';
 }
 
 function targetFor(bot) {
@@ -749,9 +839,16 @@ function tickVisit(bot, nowMs) {
   }
 }
 
+function lampHex(bot) {
+  if (bot.state === 'waiting_user') return 0xf0b03a;
+  if (bot.state === 'error') return 0xe24b4b;
+  if (bot.state === 'done') return 0x5b9bff;
+  return bot.hex;
+}
+
 function placeLamp(bot) {
   if (!lampShade) return;
-  const on = !!bot.live;
+  const on = bot.state === 'working' || bot.state === 'collaborating' || bot.state === 'waiting_user' || bot.state === 'error';
   const x = bot.desk.x + 0.4;
   const z = bot.desk.z + 0.32;
   dummy.position.set(x, on ? FY + 0.82 : -6, z);
@@ -764,8 +861,16 @@ function placeLamp(bot) {
   dummy.updateMatrix();
   lampPole.setMatrixAt(bot.index, dummy.matrix);
   dummy.rotation.set(0, 0, 0);
-  lampColor.setHex(bot.hex);
+  lampColor.setHex(lampHex(bot));
   lampShade.setColorAt(bot.index, lampColor);
+  if (!ringMesh) return;
+  const hot = deskHot(bot) && !bot.parked;
+  dummy.position.set(bot.desk.x, hot ? 0.12 : -8, bot.desk.z);
+  dummy.rotation.set(0, 0, 0);
+  dummy.scale.set(1, 1, 1);
+  dummy.updateMatrix();
+  ringMesh.setMatrixAt(bot.index, dummy.matrix);
+  ringMesh.setColorAt(bot.index, lampColor);
 }
 
 function assignHandoffs() {
@@ -794,8 +899,12 @@ function paintBot(bot) {
   });
   chairMesh.setColorAt(bot.index, new THREE.Color(bot.hex));
   chairMesh.instanceColor.needsUpdate = true;
-  const on = !!bot.live;
-  screenMesh.setColorAt(bot.index, new THREE.Color(on ? ON_COLORS[bot.index % ON_COLORS.length] : 0x24343c));
+  let screenHex = 0x24343c;
+  if (bot.state === 'waiting_user') screenHex = 0xf0b03a;
+  else if (bot.state === 'error') screenHex = 0xe24b4b;
+  else if (bot.state === 'done') screenHex = 0x5b9bff;
+  else if (bot.live) screenHex = ON_COLORS[bot.index % ON_COLORS.length];
+  screenMesh.setColorAt(bot.index, new THREE.Color(screenHex));
   screenMesh.instanceColor.needsUpdate = true;
   placeLamp(bot);
 }
@@ -803,11 +912,11 @@ function paintBot(bot) {
 function apply(first) {
   const now = performance.now();
   const statusMap = new Map();
-  if (lastStatus && Array.isArray(lastStatus.bots)) {
+  if (!liveMode && lastStatus && Array.isArray(lastStatus.bots)) {
     lastStatus.bots.forEach((entry) => { if (entry && entry.id) statusMap.set(entry.id, entry); });
   }
   agents.forEach((bot) => {
-    const entry = statusMap.get(bot.id);
+    const entry = liveMode ? (liveEntries.get(bot.id) || null) : statusMap.get(bot.id);
     const next = simulating ? simFor(bot, now) : effective(entry);
     const prev = bot.state;
     bot.state = next.state;
@@ -815,18 +924,30 @@ function apply(first) {
     bot.with = next.with;
     bot.live = next.state === 'working' || next.state === 'collaborating';
     bot.parked = parkedFor(bot, entry, next, simulating);
+    bot._becameWorking = next.state === 'working' && prev !== 'working';
+    bot._wasAtDesk = nearSpot(bot, bot.desk);
     if (bot.state === 'collaborating' && bot.id !== 'kelvin') {
       if (prev !== 'collaborating' || !bot.visit) bot.visit = { phase: 'walk', sent: false };
     } else {
       bot.visit = null;
     }
+    if (bot.state !== 'working') bot.arrival = null;
   });
   assignHandoffs();
   agents.forEach((bot) => {
     paintBot(bot);
     const home = bot.parked ? bot.lounge : bot.desk;
     const dest = targetFor(bot);
-    if (first || bot.state === 'offline') {
+    const simWalk = simulating && !first && (hash(bot.id + ':' + bot.task) % 2 === 0);
+    const liveWalk = liveMode && !simulating && liveBursts > 0;
+    const walkIn = bot._becameWorking && bot.id !== 'kelvin' && bot._wasAtDesk && !bot.visit && (simWalk || liveWalk);
+    if (bot.arrival === 'out' && bot.state === 'working') {
+      /* still stepping out to the aisle; tickArrival brings them back */
+    } else if (walkIn) {
+      bot.arrival = 'out';
+      bot.dest = null;
+      go(bot, aisleNear(bot));
+    } else if (first || bot.state === 'offline') {
       bot.rig.root.position.set(home.x, 0, home.z);
       bot.path = [];
       bot.settled = true;
@@ -839,6 +960,14 @@ function apply(first) {
         bot.settled = false;
         bot.dest = dest;
         if (bot.visit) bot.visit.sent = true;
+      } else if (first && simulating && bot.state === 'working' && bot.id !== 'kelvin' && (hash(bot.id) % 3 === 0)) {
+        const from = aisleNear(bot);
+        bot.rig.root.position.set(from.x, 0, from.z);
+        bot.face = from.face || 0;
+        bot.rig.root.rotation.y = bot.face;
+        bot.dest = null;
+        bot.settled = false;
+        go(bot, bot.desk);
       }
     } else {
       const same = bot.dest && Math.hypot(bot.dest.x - dest.x, bot.dest.z - dest.z) < 0.08;
@@ -865,6 +994,10 @@ function apply(first) {
     lampPole.instanceMatrix.needsUpdate = true;
     if (lampShade.instanceColor) lampShade.instanceColor.needsUpdate = true;
   }
+  if (ringMesh) {
+    ringMesh.instanceMatrix.needsUpdate = true;
+    if (ringMesh.instanceColor) ringMesh.instanceColor.needsUpdate = true;
+  }
   const deskN = agents.filter((b) => !b.parked).length;
   window.__office.seated = {
     desk: deskN,
@@ -880,7 +1013,7 @@ function refreshTags() {
   agents.forEach((bot) => {
     const hot = bot.id === hoverId || bot.id === pinned;
     bot.tag.classList.toggle('on', hot);
-    const show = hot || bot.state === 'working' || bot.state === 'collaborating' || bot.state === 'offline';
+    const show = hot || bot.state === 'working' || bot.state === 'collaborating' || bot.state === 'offline' || bot.state === 'waiting_user' || bot.state === 'error' || bot.state === 'done';
     bot.tag.classList.toggle('show', show);
   });
   rosterEl.querySelectorAll('.bot-row').forEach((row) => {
@@ -889,10 +1022,14 @@ function refreshTags() {
 }
 
 function renderHud() {
-  const counts = { working: 0, idle: 0, collaborating: 0, offline: 0 };
+  const counts = { working: 0, idle: 0, collaborating: 0, offline: 0, waiting_user: 0, error: 0, done: 0 };
   agents.forEach((bot) => { counts[bot.state] = (counts[bot.state] || 0) + 1; });
   countsEl.replaceChildren();
-  [['working', 'working'], ['collaborating', 'together'], ['idle', 'idle'], ['offline', 'offline']].forEach(([key, word]) => {
+  const pills = [['working', 'working'], ['collaborating', 'together'], ['idle', 'idle'], ['offline', 'offline']];
+  if (counts.waiting_user) pills.push(['waiting_user', 'waiting']);
+  if (counts.error) pills.push(['error', 'error']);
+  if (counts.done) pills.push(['done', 'done']);
+  pills.forEach(([key, word]) => {
     const el = document.createElement('span');
     el.className = 'count ' + key;
     const dot = document.createElement('i');
@@ -900,14 +1037,15 @@ function renderHud() {
     countsEl.appendChild(el);
   });
   simPill.hidden = !simulating;
-  liveEl.hidden = simulating;
+  liveEl.hidden = simulating && !liveMode;
   liveEl.textContent = feedOk ? 'Live' : 'No feed';
   liveEl.classList.toggle('bad', !feedOk);
   simBtn.textContent = simulating ? 'Stop Simulation' : 'Simulate Work';
   simBtn.classList.toggle('on', simulating);
   window.__office.simulating = simulating;
+  window.__office.live = liveMode && !simulating;
 
-  const nextSig = agents.map((a) => a.id + a.state + a.task).join('|') + (simulating ? 'S' : 'L');
+  const nextSig = agents.map((a) => a.id + a.state + a.task).join('|') + (simulating ? 'S' : liveMode ? 'N' : 'L');
   if (nextSig === sig) return;
   sig = nextSig;
   rosterEl.replaceChildren();
@@ -951,12 +1089,22 @@ function renderHud() {
     note.className = 'act';
     note.textContent = 'Simulated in this browser only.';
     activityEl.appendChild(note);
-    agents.filter((a) => a.state === 'working' || a.state === 'collaborating').slice(0, 6).forEach((bot) => {
+    agents.filter((a) => a.state === 'working' || a.state === 'collaborating' || a.state === 'waiting_user' || a.state === 'error' || a.state === 'done').slice(0, 6).forEach((bot) => {
       const line = document.createElement('div');
       line.className = 'act';
       const b = document.createElement('b');
       b.textContent = bot.name;
       line.append(b, document.createTextNode(' ' + (bot.task || STATE_WORD[bot.state])));
+      activityEl.appendChild(line);
+    });
+  } else if (liveMode) {
+    liveHistory.slice(-6).reverse().forEach((row) => {
+      const line = document.createElement('div');
+      line.className = 'act';
+      const who = byId.get(row.id);
+      const b = document.createElement('b');
+      b.textContent = who ? who.name : row.id;
+      line.append(b, document.createTextNode(' ' + (row.task || STATE_WORD[row.state] || '')));
       activityEl.appendChild(line);
     });
   } else if (lastStatus && Array.isArray(lastStatus.history)) {
@@ -972,6 +1120,16 @@ function renderHud() {
       line.append(b, document.createTextNode(' ' + (row.task || row.state || '')), when);
       activityEl.appendChild(line);
     });
+  }
+}
+
+function tickArrival(bot) {
+  if (bot.arrival !== 'out') return;
+  const spot = aisleNear(bot);
+  if (bot.settled && nearSpot(bot, spot)) {
+    bot.arrival = null;
+    bot.dest = null;
+    go(bot, bot.desk);
   }
 }
 
@@ -1002,6 +1160,18 @@ function stepAgent(bot, dt) {
   bot.rig.root.rotation.y = angLerp(bot.rig.root.rotation.y, bot.face, 1 - Math.exp(-8 * dt));
 }
 
+function blink(bot, rig, time) {
+  if (!bot.blinkAt) bot.blinkAt = time + 1.5 + (bot.seed % 5) * 0.4;
+  let shut = 1;
+  if (time >= bot.blinkAt) {
+    const u = time - bot.blinkAt;
+    if (u < 0.07) shut = Math.max(0.15, 1 - u / 0.07);
+    else if (u < 0.16) shut = 0.15 + (u - 0.07) / 0.09;
+    else bot.blinkAt = time + 2.6 + (bot.seed % 4);
+  }
+  rig.eyes.forEach((eye) => { eye.scale.y = shut; });
+}
+
 function applyPose(bot, dt, time) {
   const rig = bot.rig;
   const visiting = bot.visit && (bot.visit.phase === 'walk' || bot.visit.phase === 'dwell');
@@ -1010,6 +1180,7 @@ function applyPose(bot, dt, time) {
   const typing = sit && !!bot.live;
   const carrying = standingCollab;
   rig.folder.scale.setScalar(carrying ? 1 : 0.0001);
+  rig.headPivot.rotation.set(0, 0, 0);
   rig.arms[0].shoulder.rotation.z = 0.18;
   rig.arms[1].shoulder.rotation.z = -0.18;
   rig.arms[0].shoulder.rotation.x = 0;
@@ -1043,12 +1214,39 @@ function applyPose(bot, dt, time) {
     rig.legs[1].hip.rotation.x = -1.5;
     rig.legs[0].knee.rotation.x = 1.5;
     rig.legs[1].knee.rotation.x = 1.5;
-    const type = typing ? Math.sin(time * 9 + bot.seed) * 0.14 : 0;
-    rig.arms[0].shoulder.rotation.x = -0.55;
-    rig.arms[1].shoulder.rotation.x = -0.55;
-    rig.arms[0].elbow.rotation.x = -0.7 + type;
-    rig.arms[1].elbow.rotation.x = -0.7 - type;
-    rig.chest.rotation.x = 0.06;
+    if (bot.state === 'waiting_user') {
+      rig.arms[1].shoulder.rotation.x = -2.35;
+      rig.arms[1].elbow.rotation.x = -0.2;
+      rig.arms[0].shoulder.rotation.x = -0.35;
+      rig.arms[0].elbow.rotation.x = -0.45;
+      rig.headPivot.rotation.y = Math.sin(time * 1.1 + bot.seed) * 0.28;
+    } else if (bot.state === 'error') {
+      rig.arms[0].shoulder.rotation.x = -0.25;
+      rig.arms[1].shoulder.rotation.x = -0.25;
+      rig.arms[0].elbow.rotation.x = -0.35;
+      rig.arms[1].elbow.rotation.x = -0.35;
+      rig.headPivot.rotation.z = Math.sin(time * 16 + bot.seed) * 0.1;
+      rig.chest.rotation.x = 0.14;
+    } else if (typing) {
+      const type = Math.sin(time * 9 + bot.seed) * 0.14;
+      rig.arms[0].shoulder.rotation.x = -0.55;
+      rig.arms[1].shoulder.rotation.x = -0.55;
+      rig.arms[0].elbow.rotation.x = -0.7 + type;
+      rig.arms[1].elbow.rotation.x = -0.7 - type;
+      rig.chest.rotation.x = 0.06;
+    } else {
+      rig.arms[0].shoulder.rotation.x = -0.35;
+      rig.arms[1].shoulder.rotation.x = -0.35;
+      rig.arms[0].elbow.rotation.x = -0.45;
+      rig.arms[1].elbow.rotation.x = -0.45;
+      if (!bot.parked) {
+        rig.headPivot.rotation.y = Math.sin(time * 0.55 + bot.seed) * 0.4;
+        if (Math.sin(time * 0.31 + bot.seed * 1.7) > 0.92) {
+          rig.arms[0].shoulder.rotation.x = -2.45;
+          rig.arms[0].elbow.rotation.x = -0.1;
+        }
+      }
+    }
   } else {
     rig.hips.position.y = HIP_STAND;
     if (carrying) {
@@ -1057,6 +1255,7 @@ function applyPose(bot, dt, time) {
       rig.arms[0].shoulder.rotation.x = -0.15;
     }
   }
+  blink(bot, rig, time);
 }
 
 function syncBots() {
@@ -1153,6 +1352,9 @@ function mountBots(list) {
   lampMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xfff1cc, emissiveIntensity: 0.35 });
   lampShade = batch(new THREE.ConeGeometry(0.1, 0.14, 8), lampMat, n, false);
   lampPole = batch(new THREE.CylinderGeometry(0.018, 0.022, 0.22, 6), lambert(0x2a241e), n, false);
+  const ringGeo = new THREE.RingGeometry(0.38, 0.58, 24);
+  ringGeo.rotateX(-Math.PI / 2);
+  ringMesh = batch(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false }), n, false);
   const badgeMesh = {};
   ORDER.forEach((dept) => {
     const kind = ACCESSORY[dept];
@@ -1161,7 +1363,7 @@ function mountBots(list) {
     badgeMesh[kind] = batch(badges[kind], lambert(BADGE_COLOR[kind]), count, false);
   });
   botMeshes = [headM, capM, torsoM, thighM, shinM, upperM, foreM, eyeM, folderM, ...Object.values(badgeMesh)];
-  scene.add(headM, capM, torsoM, thighM, shinM, upperM, foreM, eyeM, folderM, deskM, chairMesh, monitorM, screenMesh, lampShade, lampPole, ...Object.values(badgeMesh));
+  scene.add(headM, capM, torsoM, thighM, shinM, upperM, foreM, eyeM, folderM, deskM, chairMesh, monitorM, screenMesh, lampShade, lampPole, ringMesh, ...Object.values(badgeMesh));
   const badgeIndex = {};
   const tagId = (mesh, i, id) => {
     if (!mesh.userData.ids) mesh.userData.ids = [];
@@ -1192,9 +1394,23 @@ function mountBots(list) {
     label.position.set(0, 1.22, 0);
     label.center.set(0.5, 1);
     rig.root.add(label);
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.hidden = true;
+    const bubbleLabel = new CSS2DObject(bubble);
+    bubbleLabel.position.set(((hash(raw.id) >> 4) % 5) * 0.12 - 0.24, 1.68 + (hash(raw.id) % 3) * 0.1, 0);
+    bubbleLabel.center.set(0.5, 1);
+    rig.root.add(bubbleLabel);
+    const badge = document.createElement('div');
+    badge.className = 'badge';
+    badge.hidden = true;
+    const badgeLabel = new CSS2DObject(badge);
+    badgeLabel.position.set(0.32, 1.05, 0);
+    badgeLabel.center.set(0.5, 0.5);
+    rig.root.add(badgeLabel);
 
     const bot = {
-      ...raw, dept, hex, index, rig, tag, desk, lounge: loungeSeats[0],
+      ...raw, dept, hex, index, rig, tag, bubble, badge, desk, lounge: loungeSeats[0],
       state: 'idle', task: '', with: [], live: false, parked: false, visit: null,
       path: [], dest: null, walking: false, settled: true, face: 0,
       phase: 0, seed: hash(raw.id) % 10, speed: 2.05 + (hash(raw.id) % 5) * 0.08,
@@ -1282,8 +1498,10 @@ function frame(now) {
   }
   agents.forEach((bot) => {
     tickVisit(bot, now);
+    tickArrival(bot);
     stepAgent(bot, dt);
   });
+  syncBubbles(now);
   separateWalkers();
   agents.forEach((bot) => applyPose(bot, dt, time));
   syncBots();
@@ -1374,6 +1592,107 @@ function bindChrome() {
   if (SHOW_FPS) fpsEl.hidden = false;
 }
 
+function syncBubbles(now) {
+  const slot = Math.floor(now / 5000);
+  const speakers = [];
+  agents.forEach((bot) => {
+    const attention = bot.state === 'waiting_user' || bot.state === 'error' || bot.state === 'done';
+    const working = (bot.state === 'working' || bot.state === 'collaborating') && !!bot.task;
+    let text = '';
+    let kind = 'speech';
+    if (attention) {
+      text = bot.task || (bot.state === 'done' ? 'Done' : STATE_WORD[bot.state]);
+      kind = bot.state === 'waiting_user' ? 'wait' : bot.state === 'error' ? 'bad' : 'done';
+      if (bot.state === 'done' && bot.task) text = '✓ ' + bot.task;
+    } else if (working) {
+      text = bot.task;
+      kind = 'speech';
+    } else if (bot.state === 'idle' && !bot.parked && !bot.walking && bot.settled) {
+      if ((Math.floor(now / 4500) + bot.seed) % 8 === 0) {
+        text = '…';
+        kind = 'thought';
+      }
+    }
+    bot._say = text;
+    bot._sayKind = kind;
+    if (working) speakers.push(bot);
+  });
+  speakers.sort((a, b) => (a.id < b.id ? -1 : 1));
+  const showWork = new Set();
+  speakers.forEach((bot, i) => {
+    if (bot.id === 'kelvin' || ((i + slot) % Math.max(speakers.length, 1) < 7 && showWork.size < 7)) showWork.add(bot.id);
+  });
+  if (speakers.length) {
+    const lead = speakers.find((bot) => bot.id === 'kelvin');
+    if (lead) showWork.add(lead.id);
+    for (let n = 0; showWork.size < Math.min(7, speakers.length); n += 1) {
+      showWork.add(speakers[(n + slot) % speakers.length].id);
+    }
+  }
+  agents.forEach((bot) => {
+    const working = (bot.state === 'working' || bot.state === 'collaborating') && !!bot.task;
+    const show = !!bot._say && (!working || showWork.has(bot.id));
+    bot.bubble.hidden = !show;
+    if (show) {
+      bot.bubble.className = 'bubble ' + bot._sayKind;
+      bot.bubble.textContent = bot._say;
+    }
+    if (bot.state === 'waiting_user') {
+      bot.badge.hidden = false;
+      bot.badge.className = 'badge wait';
+      bot.badge.textContent = '?';
+    } else if (bot.state === 'error') {
+      bot.badge.hidden = false;
+      bot.badge.className = 'badge bad';
+      bot.badge.textContent = '!';
+    } else {
+      bot.badge.hidden = true;
+      bot.badge.textContent = '';
+    }
+  });
+}
+
+const LIVE_STATE = new Set(['working', 'idle', 'waiting_user', 'error', 'done', 'collaborating', 'offline']);
+
+function matchBot(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (byId.has(lower)) return byId.get(lower);
+  const slug = lower.replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (byId.has(slug)) return byId.get(slug);
+  for (const bot of agents) {
+    if (bot.name.toLowerCase() === lower) return bot;
+  }
+  return null;
+}
+
+function onLiveRecord(record) {
+  if (!record || typeof record !== 'object') return false;
+  if (!record.bot) return false;
+  const state = String(record.status || '').toLowerCase();
+  if (!LIVE_STATE.has(state)) return false;
+  const bot = matchBot(record.bot);
+  if (!bot) return false;
+  const task = state === 'idle' ? '' : clipTask(record.step || record.task);
+  const at = record._at || new Date().toISOString();
+  liveEntries.set(bot.id, { id: bot.id, state, task, with: [], updated_at: at });
+  liveHistory.push({ id: bot.id, state, task, at });
+  if (liveHistory.length > 20) liveHistory.shift();
+  return true;
+}
+
+function queueLiveApply() {
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => {
+    if (!simulating) {
+      sig = '';
+      apply(false);
+    } else renderHud();
+    liveBursts += 1;
+  }, 40);
+}
+
 async function boot() {
   resize();
   buildYard(scene);
@@ -1386,11 +1705,15 @@ async function boot() {
     throw new Error('Could not read data/bots.json');
   }
   if (!Array.isArray(bots)) throw new Error('data/bots.json must be a list');
-  try {
-    lastStatus = await loadJSON('status.json');
-    feedOk = true;
-  } catch (err) {
-    lastStatus = null;
+  if (!liveMode) {
+    try {
+      lastStatus = await loadJSON('status.json');
+      feedOk = true;
+    } catch (err) {
+      lastStatus = null;
+      feedOk = false;
+    }
+  } else {
     feedOk = false;
   }
   mountBots(bots);
@@ -1403,8 +1726,32 @@ async function boot() {
   window.__office.booted = true;
   window.__office.bots = agents.length;
   window.__office.camera = camera;
+  window.__office.live = liveMode;
+  window.__office.snapshot = () => agents.map((bot) => ({
+    id: bot.id,
+    state: bot.state,
+    task: bot.task,
+    walking: bot.walking,
+    parked: bot.parked,
+    bubble: bot.bubble && !bot.bubble.hidden ? bot.bubble.textContent : '',
+    badge: bot.badge && !bot.badge.hidden ? bot.badge.textContent : ''
+  }));
   requestAnimationFrame(frame);
+  if (liveTopic) {
+    liveHandle = startLive(liveTopic, {
+      onRecord: (record, at) => {
+        if (onLiveRecord({ ...record, _at: at })) queueLiveApply();
+      },
+      onFeed: (ok) => {
+        feedOk = !!ok;
+        window.__office.feed = feedOk;
+        renderHud();
+      }
+    });
+    window.addEventListener('hashchange', () => location.reload());
+  }
   setInterval(async () => {
+    if (liveMode && !simulating) return;
     try {
       lastStatus = await loadJSON('status.json');
       feedOk = true;
